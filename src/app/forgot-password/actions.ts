@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export type ForgotPasswordState = {
@@ -27,10 +28,10 @@ export async function requestPasswordResetAction(
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
   if (error) {
-    // 🔍 TEMPORAL — ver error real para diagnosticar
-    console.error("[forgot-password] error:", error.message, "| status:", error.status, "| redirectTo:", redirectTo);
-    return { error: `Error (${error.status}): ${error.message}` };
+    // ✅ Mensaje genérico — no exponemos el error interno de Supabase
+    return { error: "No se pudo enviar el enlace. Intenta de nuevo en un momento." };
   }
 
+  // ✅ Éxito — mensaje ambiguo por seguridad (no confirma si el email existe)
   return { success: true };
 }
