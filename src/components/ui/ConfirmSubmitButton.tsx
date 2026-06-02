@@ -1,16 +1,15 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { Loader2 } from "lucide-react";
 
-export function ConfirmSubmitButton({
+function InnerButton({
   children,
   className,
-  confirmMessage,
   disabled,
 }: {
   children: React.ReactNode;
   className?: string;
-  confirmMessage?: string;
   disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
@@ -18,16 +17,35 @@ export function ConfirmSubmitButton({
   return (
     <button
       type="submit"
-      className={className}
+      className={`${className} inline-flex items-center justify-center gap-2`}
       disabled={disabled || pending}
-      onClick={(event) => {
-        if (!confirmMessage) return;
-        if (!window.confirm(confirmMessage)) {
-          event.preventDefault();
-        }
-      }}
     >
-      {pending ? "Procesando..." : children}
+      {pending ? (
+        <>
+          <Loader2 size={15} className="animate-spin" />
+          Procesando...
+        </>
+      ) : children}
     </button>
+  );
+}
+
+export function ConfirmSubmitButton({
+  children,
+  className,
+  confirmMessage: _confirmMessage,
+  disabled,
+  variant: _variant,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  confirmMessage?: string;
+  disabled?: boolean;
+  variant?: "default" | "danger";
+}) {
+  return (
+    <InnerButton className={className} disabled={disabled}>
+      {children}
+    </InnerButton>
   );
 }

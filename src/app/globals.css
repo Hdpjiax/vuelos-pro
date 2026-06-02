@@ -15,6 +15,12 @@
   box-sizing: border-box;
 }
 
+/* Bloquea scroll del body cuando hay modal abierto */
+body.modal-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
 html,
 body {
   min-height: 100%;
@@ -40,28 +46,31 @@ textarea {
   font: inherit;
 }
 
+/* ─── Fondos ──────────────────────────────────────────────────────────────── */
+
 .dashboard-bg {
+  /* Minimalista: gradiente suave sin ruido visual */
   background:
-    radial-gradient(circle at top left, rgba(38, 182, 212, 0.18), transparent 30rem),
-    linear-gradient(135deg, #f7fbff 0%, #eef5fb 42%, #ffffff 100%);
+    radial-gradient(ellipse 60% 40% at 10% 0%, rgba(38, 182, 212, 0.10) 0%, transparent 70%),
+    linear-gradient(160deg, #f4f9ff 0%, #f0f6fc 55%, #ffffff 100%);
 }
 
 .admin-bg {
   background:
-    radial-gradient(circle at top left, rgba(38, 182, 212, 0.18), transparent 28rem),
+    radial-gradient(ellipse 50% 35% at 0% 0%, rgba(38, 182, 212, 0.14) 0%, transparent 60%),
     linear-gradient(135deg, #071c2f 0%, #0d3452 48%, #f6f8fb 48%, #f6f8fb 100%);
 }
-
 
 @media (max-width: 767px) {
   .admin-bg {
     background:
-      radial-gradient(circle at top left, rgba(38, 182, 212, 0.18), transparent 24rem),
+      radial-gradient(ellipse 80% 30% at 50% 0%, rgba(38, 182, 212, 0.14) 0%, transparent 60%),
       linear-gradient(180deg, #071c2f 0%, #0d3452 14rem, #f6f8fb 14rem, #f6f8fb 100%);
   }
 }
 
-/* Mobile/tablet hardening */
+/* ─── Mobile/tablet hardening ─────────────────────────────────────────────── */
+
 html {
   width: 100%;
   max-width: 100%;
@@ -85,48 +94,26 @@ canvas {
   max-width: 100%;
 }
 
+/* ─── Loader ──────────────────────────────────────────────────────────────── */
+
 .vuelos-loader {
   min-height: min(70dvh, 36rem);
   display: grid;
   place-items: center;
   padding: 5rem 1.5rem 1.5rem;
-  background:
-    radial-gradient(circle at top left, rgba(38, 182, 212, 0.18), transparent 28rem),
-    linear-gradient(135deg, #f7fbff 0%, #eef5fb 42%, #ffffff 100%);
+  /* Fondo limpio sin ruido */
+  background: linear-gradient(160deg, #f4f9ff 0%, #f0f6fc 55%, #ffffff 100%);
 }
 
 .vuelos-loader-card {
-  width: min(100%, 25rem);
-  border: 1px solid #dbe3ee;
+  width: min(100%, 22rem);
+  border: 1px solid #e8eef6;
   border-radius: 2rem;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 1.5rem;
-  box-shadow: 0 24px 70px rgba(15, 58, 95, 0.16);
-}
-
-.vuelos-loader-logo {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.vuelos-loader-mark {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 1rem;
-  background: linear-gradient(135deg, #0f3a5f, #26b6d4);
-  position: relative;
-  overflow: hidden;
-}
-
-.vuelos-loader-mark::after,
-.skeleton-shine::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
-  animation: shimmer 1.2s infinite;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 1.75rem;
+  box-shadow:
+    0 0 0 1px rgba(15, 58, 95, 0.04),
+    0 20px 60px rgba(15, 58, 95, 0.10);
 }
 
 .vuelos-loader-line,
@@ -134,41 +121,95 @@ canvas {
   position: relative;
   overflow: hidden;
   border-radius: 999px;
-  background: #e2e8f0;
+  background: #edf2f8;
 }
 
 .vuelos-loader-line {
-  height: 0.85rem;
+  height: 0.8rem;
 }
 
 .skeleton-line {
   height: 0.9rem;
 }
 
-.vuelos-loader-spinner {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 999px;
-  border: 3px solid #dbeafe;
-  border-top-color: #26b6d4;
-  animation: spin 0.8s linear infinite;
+.skeleton-shine {
+  position: relative;
+  overflow: hidden;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.skeleton-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.75) 50%,
+      transparent 100%);
+  animation: shimmer 1.4s ease-in-out infinite;
 }
 
+/* Spinner en el AppLoading (el ring alrededor del ícono usa Tailwind animate-spin) */
 @keyframes shimmer {
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ─── Animaciones de entrada ──────────────────────────────────────────────── */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-from-bottom-4 {
+  from {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  animation-name: fade-in;
+}
+
+.slide-in-from-bottom-4 {
+  animation-name: slide-in-from-bottom-4;
+}
+
+.duration-200 {
+  animation-duration: 200ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vuelos-loader-spinner,
-  .vuelos-loader-mark::after,
-  .skeleton-shine::after {
-    animation: none;
+
+  .skeleton-shine::after,
+  .animate-spin,
+  .animate-in {
+    animation: none !important;
   }
 }
+
+/* ─── Mobile ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 767px) {
   body {
@@ -195,12 +236,6 @@ canvas {
   .dashboard-bg,
   .admin-bg {
     overflow-x: hidden;
-  }
-
-  .admin-bg {
-    background:
-      radial-gradient(circle at top left, rgba(38, 182, 212, 0.18), transparent 24rem),
-      linear-gradient(180deg, #071c2f 0%, #0d3452 16rem, #f6f8fb 16rem, #f6f8fb 100%);
   }
 
   .overflow-x-auto {
@@ -271,7 +306,7 @@ canvas {
     content: none;
   }
 
-  td > * {
+  td>* {
     max-width: 100%;
   }
 }

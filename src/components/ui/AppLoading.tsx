@@ -1,27 +1,40 @@
+import { Plane } from "lucide-react";
+
 export function AppLoading({ title = "Cargando VuelosPro" }: { title?: string }) {
   return (
     <main className="vuelos-loader">
       <section className="vuelos-loader-card">
-        <div className="vuelos-loader-logo">
-          <div className="vuelos-loader-mark" aria-hidden="true" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-700">VuelosPro</p>
-            <h1 className="mt-1 text-xl font-black text-slate-950">{title}</h1>
-            <p className="mt-1 text-xs font-bold text-slate-500">Optimizando la información solicitada...</p>
+        {/* Logo + spinner */}
+        <div className="flex items-center gap-4">
+          <div className="relative flex-shrink-0">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-700 to-cyan-400 text-white shadow-lg shadow-sky-200">
+              <Plane size={22} />
+            </div>
+            {/* Ring spinner alrededor del ícono */}
+            <span className="absolute -inset-1 rounded-[1.1rem] border-2 border-sky-200 border-t-sky-500 animate-spin" aria-hidden="true" />
           </div>
-          <div className="vuelos-loader-spinner" aria-hidden="true" />
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-600">VuelosPro</p>
+            <h1 className="mt-0.5 text-lg font-black text-slate-950 leading-tight">{title}</h1>
+          </div>
         </div>
 
-        <div className="mt-6 space-y-3" aria-hidden="true">
+        {/* Barras skeleton */}
+        <div className="mt-7 space-y-3" aria-hidden="true">
           <div className="vuelos-loader-line skeleton-shine w-full" />
-          <div className="vuelos-loader-line skeleton-shine w-10/12" />
-          <div className="vuelos-loader-line skeleton-shine w-7/12" />
+          <div className="vuelos-loader-line skeleton-shine w-9/12" />
+          <div className="vuelos-loader-line skeleton-shine w-6/12" />
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-3" aria-hidden="true">
-          <div className="h-20 rounded-3xl bg-slate-100 skeleton-shine relative overflow-hidden" />
-          <div className="h-20 rounded-3xl bg-slate-100 skeleton-shine relative overflow-hidden" />
-          <div className="h-20 rounded-3xl bg-slate-100 skeleton-shine relative overflow-hidden" />
+        {/* Cards skeleton */}
+        <div className="mt-5 grid grid-cols-3 gap-3" aria-hidden="true">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-16 rounded-2xl bg-slate-100/80 skeleton-shine relative overflow-hidden"
+              style={{ animationDelay: `${i * 0.12}s` }}
+            />
+          ))}
         </div>
       </section>
     </main>
