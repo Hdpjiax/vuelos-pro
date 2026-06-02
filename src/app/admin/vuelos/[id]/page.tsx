@@ -11,23 +11,87 @@ import { createClient } from "@/lib/supabase/server";
 import { createSignedAttachmentUrls, createSignedFlightFileUrl } from "@/lib/storage";
 import { buttonDanger, buttonPrimary, buttonSecondary, inputClass, labelClass } from "@/lib/styles";
 import { addInternalNoteAction, confirmPaymentAction, sendBankAccountAction, updateFinancialsAction, updateFlightStatusAction, uploadInternalFilesAction, uploadQrAction } from "./actions";
+import type { FlightStatus } from "@/lib/types";
 
-const canSendBankAccountStatuses = new Set(["pendiente_revision", "esperando_pago"]);
-const canConfirmPaymentStatuses = new Set(["pago_subido", "pago_confirmado"]);
-const canUploadQrStatuses = new Set(["pago_confirmado", "pendiente_qr", "qr_enviado"]);
+// ─── Tipos locales ────────────────────────────────────────────────────────────
+
+type ProfileSnippet = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+};
+
+type BankAccount = {
+  id: string;
+  bank_name: string;
+  account_holder: string;
+  clabe: string;
+  active: boolean;
+};
+
+type RawMessage = {
+  id: string;
+  message: string;
+  message_type: string;
+  created_at: string;
+  sender_id: string;
+};
+
+type RawNote = {
+  id: string;
+  note: string;
+  created_at: string;
+  admin_id: string;
+};
+
+type FlightMessage = RawMessage & { profiles: ProfileSnippet | null };
+type InternalNote = RawNote & { profiles: ProfileSnippet | null };
+
+type RawFlight = {
+  id: string;
+  user_id: string;
+  status: FlightStatus;
+  flight_image_path: string | null;
+  total_amount: number | null;
+  amount_to_pay: number | null;
+  payment_percentage: number | null;
+  provider_cost_amount: number | null;
+  admin_commission_amount: number | null;
+  profit_amount: number | null;
+  financial_status: string | null;
+  financial_notes: string | null;
+  [key: string]: unknown;
+};
+
+type Flight = RawFlight & { profiles: ProfileSnippet | null };
+
+// ─── Sets de control ──────────────────────────────────────────────────────────
+
+const canSendBankAccountStatuses = new Set<FlightStatus>(["pendiente_revision", "esperando_pago"]);
+const canConfirmPaymentStatuses = new Set<FlightStatus>(["pago_subido", "pago_confirmado"]);
+const canUploadQrStatuses = new Set<FlightStatus>(["pago_confirmado", "pendiente_qr", "qr_enviado"]);
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default async function AdminFlightDetailPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: rawFlight }, { data: bankAccounts }, { data: rawMessages }, { data: attachments }, { data: settingsRow }, { data: internalNotes }] = await Promise.all([
+  const [
+    { data: rawFlight },
+    { data: bankAccounts },
+    { data: rawMessages },
+    { data: attachments },
+    { data: settingsRow },
+    { data: internalNotes },
+  ] = await Promise.all([
     supabase
       .from("flights")
-      .select("*")
+      .select("id, user_id, status, flight_image_path, total_amount, amount_to_pay, payment_percentage, provider_cost_amount, admin_commission_amount, profit_amount, financial_status, financial_notes, flight_folio, flight_date, flight_time, return_flight_date, return_flight_time, flight_type, fare_type, passengers, extras, user_cancel_reason, cancelled_at")
       .eq("id", id)
       .single(),
     supabase
@@ -59,20 +123,32 @@ export default async function AdminFlightDetailPage({ params }: PageProps) {
 
   if (!rawFlight) notFound();
 
-  const senderIds = Array.from(new Set([rawFlight.user_id, ...(rawMessages ?? []).map((message: any) => message.sender_id), ...(internalNotes ?? []).map((note: any) => note.admin_id)].filter(Boolean)));
+  const senderIds = Array.from(
+    new Set(
+      [
+        rawFlight.user_id,
+        ...(rawMessages ?? []).map((m: RawMessage) => m.sender_id),
+        ...(internalNotes ?? []).map((n: RawNote) => n.admin_id),
+      ].filter(Boolean) as string[]
+    )
+  );
+
   const { data: relatedProfiles } = senderIds.length
     ? await supabase.from("profiles").select("id, full_name, email").in("id", senderIds)
-    : { data: [] };
+    : { data: [] as ProfileSnippet[] };
 
-  const profileMap = new Map((relatedProfiles ?? []).map((profile: any) => [profile.id, profile]));
-  const flight = { ...rawFlight, profiles: profileMap.get(rawFlight.user_id) ?? null };
-  const messages = (rawMessages ?? []).map((message: any) => ({
-    ...message,
-    profiles: profileMap.get(message.sender_id) ?? null,
+  const profileMap = new Map((relatedProfiles ?? []).map((p: ProfileSnippet) => [p.id, p]));
+
+  const flight: Flight = { ...(rawFlight as RawFlight), profiles: profileMap.get(rawFlight.user_id) ?? null };
+
+  const messages: FlightMessage[] = (rawMessages ?? []).map((m: RawMessage) => ({
+    ...m,
+    profiles: profileMap.get(m.sender_id) ?? null,
   }));
-  const notes = (internalNotes ?? []).map((note: any) => ({
-    ...note,
-    profiles: profileMap.get(note.admin_id) ?? null,
+
+  const notes: InternalNote[] = (internalNotes ?? []).map((n: RawNote) => ({
+    ...n,
+    profiles: profileMap.get(n.admin_id) ?? null,
   }));
 
   const imageUrl = await createSignedFlightFileUrl(supabase, flight.flight_image_path);
@@ -107,7 +183,7 @@ export default async function AdminFlightDetailPage({ params }: PageProps) {
               <div className="grid gap-5 xl:grid-cols-3">
                 <SendBankAccountForm
                   flight={flight}
-                  bankAccounts={bankAccounts ?? []}
+                  bankAccounts={(bankAccounts ?? []) as BankAccount[]}
                   disabled={!canSendBankAccountStatuses.has(flight.status)}
                   defaultNote={operationsSettings.default_bank_note ?? ""}
                 />
@@ -130,21 +206,26 @@ export default async function AdminFlightDetailPage({ params }: PageProps) {
 
       <FlightFilesPanel
         flightId={flight.id}
-        attachments={signedAttachments as any}
+        attachments={signedAttachments as Parameters<typeof FlightFilesPanel>[0]["attachments"]}
         canUploadInternal
         uploadAction={uploadInternalFilesAction}
         downloadAllHref={`/admin/vuelos/${flight.id}/archivos/descargar`}
       />
 
-      <AdminInternalNotes notes={notes as any} flightId={flight.id} action={addInternalNoteAction} />
+      <AdminInternalNotes
+        notes={notes as Parameters<typeof AdminInternalNotes>[0]["notes"]}
+        flightId={flight.id}
+        action={addInternalNoteAction}
+      />
 
-      <FlightMessages messages={(messages ?? []) as any} />
+      <FlightMessages messages={messages as Parameters<typeof FlightMessages>[0]["messages"]} />
     </div>
   );
 }
 
+// ─── Sub-componentes ──────────────────────────────────────────────────────────
 
-function FinancialForm({ flight }: { flight: any }) {
+function FinancialForm({ flight }: { flight: Flight }) {
   const providerCost = Number(flight.provider_cost_amount ?? 0);
   const commission = Number(flight.admin_commission_amount ?? 0);
   const amountToPay = Number(flight.amount_to_pay ?? flight.total_amount ?? 0);
@@ -171,7 +252,7 @@ function FinancialForm({ flight }: { flight: any }) {
         </label>
         <label className="space-y-2">
           <span className={labelClass}>Estado financiero</span>
-          <select className={inputClass} name="financial_status" defaultValue={flight.financial_status || "pendiente"}>
+          <select className={inputClass} name="financial_status" defaultValue={flight.financial_status ?? "pendiente"}>
             <option value="pendiente">Pendiente</option>
             <option value="revisar">Revisar</option>
             <option value="liquidado">Liquidado</option>
@@ -179,13 +260,20 @@ function FinancialForm({ flight }: { flight: any }) {
         </label>
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Ganancia actual</p>
-          <p className="mt-1 text-2xl font-black text-emerald-900">{new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(profit)}</p>
+          <p className="mt-1 text-2xl font-black text-emerald-900">
+            {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(profit)}
+          </p>
           <p className="mt-1 text-xs font-bold text-emerald-700">Se recalcula al guardar.</p>
         </div>
       </div>
       <label className="mt-4 block space-y-2">
         <span className={labelClass}>Notas financieras</span>
-        <textarea className={`${inputClass} min-h-20 resize-y`} name="financial_notes" defaultValue={flight.financial_notes || ""} placeholder="Ejemplo: comisión incluida, costo pendiente, ajuste especial..." />
+        <textarea
+          className={`${inputClass} min-h-20 resize-y`}
+          name="financial_notes"
+          defaultValue={flight.financial_notes ?? ""}
+          placeholder="Ejemplo: comisión incluida, costo pendiente, ajuste especial..."
+        />
       </label>
       <ConfirmSubmitButton className={`${buttonPrimary} mt-4 w-full md:w-auto`} confirmMessage="¿Guardar datos financieros de este vuelo?">
         Guardar finanzas
@@ -200,8 +288,8 @@ function SendBankAccountForm({
   disabled,
   defaultNote,
 }: {
-  flight: any;
-  bankAccounts: any[];
+  flight: Flight;
+  bankAccounts: BankAccount[];
   disabled: boolean;
   defaultNote: string;
 }) {
@@ -220,9 +308,7 @@ function SendBankAccountForm({
           <p className="text-xs font-semibold text-slate-500">Manda CLABE y total con porcentaje/descuento.</p>
         </div>
       </div>
-
       <input type="hidden" name="flight_id" value={flight.id} />
-
       <label className="space-y-2">
         <span className={labelClass}>Cuenta activa</span>
         <select className={inputClass} name="bank_account_id" disabled={!hasBankAccount || disabled} required>
@@ -234,7 +320,6 @@ function SendBankAccountForm({
           ))}
         </select>
       </label>
-
       <label className="mt-4 block space-y-2">
         <span className={labelClass}>Porcentaje a pagar del vuelo</span>
         <input
@@ -249,15 +334,21 @@ function SendBankAccountForm({
           required
         />
         <span className="block text-xs font-semibold text-slate-500">
-          Total original: {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(totalAmount)} · último total a pagar: {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(amountToPay)}
+          Total original: {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(totalAmount)}
+          {" · "}
+          Último total a pagar: {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(amountToPay)}
         </span>
       </label>
-
       <label className="mt-4 block space-y-2">
         <span className={labelClass}>Nota opcional</span>
-        <textarea className={`${inputClass} min-h-24 resize-y`} name="note" placeholder="Ejemplo: enviar comprobante en esta misma pantalla." defaultValue={defaultNote} disabled={disabled} />
+        <textarea
+          className={`${inputClass} min-h-24 resize-y`}
+          name="note"
+          placeholder="Ejemplo: enviar comprobante en esta misma pantalla."
+          defaultValue={defaultNote}
+          disabled={disabled}
+        />
       </label>
-
       <ConfirmSubmitButton
         className={`${buttonPrimary} mt-4 w-full`}
         disabled={disabled || !hasBankAccount}
@@ -314,7 +405,7 @@ function StatusForm({
   icon,
 }: {
   flightId: string;
-  status: string;
+  status: FlightStatus;
   label: string;
   variant?: "secondary" | "danger";
   icon?: React.ReactNode;
@@ -325,7 +416,11 @@ function StatusForm({
       <input type="hidden" name="status" value={status} />
       <ConfirmSubmitButton
         className={variant === "danger" ? buttonDanger : buttonSecondary}
-        confirmMessage={variant === "danger" ? "¿Cancelar este vuelo? Esta acción notificará al usuario." : "¿Marcar este vuelo como completado?"}
+        confirmMessage={
+          variant === "danger"
+            ? "¿Cancelar este vuelo? Esta acción notificará al usuario."
+            : "¿Marcar este vuelo como completado?"
+        }
       >
         {icon}
         {label}
