@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Mail, Lock, Plane } from "lucide-react";
 import { buttonPrimary, buttonSecondary } from "@/lib/styles";
 import { loginAction, type LoginState } from "./actions";
@@ -10,6 +11,9 @@ const initialState: LoginState = {};
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
+  // ← AQUÍ, después de esa línea:
+  const searchParams = useSearchParams();
+  const registered = searchParams.get("success") === "1";
 
   return (
     <main className="min-h-screen dashboard-bg flex items-center justify-center px-4 py-10">
@@ -33,7 +37,11 @@ export default function LoginPage() {
             {state.error}
           </div>
         ) : null}
-
+        {registered ? (
+          <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+            Cuenta creada correctamente. Ahora inicia sesión.
+          </div>
+        ) : null}
         <form action={formAction} className="space-y-4">
           <label className="block">
             <span className="mb-2 block text-sm font-bold text-slate-700">Correo</span>
