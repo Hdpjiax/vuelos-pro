@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { createClient } from "@/lib/supabase/server";
+import { DownloadButton } from "@/components/ui/DownloadButton";
 import { buttonPrimarySmall, buttonSecondarySmall, inputClass, labelClass, panelClass } from "@/lib/styles";
 import { flightTypeLabel, formatCurrency, formatDate, formatFlightFolio, formatTime, getAmountToPay, getTodayISO, statusLabel } from "@/lib/utils";
 export const revalidate = 60;
@@ -135,8 +136,9 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 print:hidden">
-            <Link href={exportHref} className={buttonPrimarySmall}><Download size={16} /> Exportar CSV</Link>
-            <PrintButton />
+            <DownloadButton href={exportHref} className={buttonPrimarySmall}>
+              Exportar CSV
+            </DownloadButton>
           </div>
         </div>
       </section>
@@ -246,7 +248,9 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
             <h3 className="text-xl font-black text-slate-950">Detalle de vuelos</h3>
             <p className="text-sm text-slate-500">Listado base para auditoría y operación diaria.</p>
           </div>
-          <Link href={exportHref} className={`${buttonSecondarySmall} print:hidden`}><Download size={16} /> Descargar detalle</Link>
+          <DownloadButton href={exportHref} filename="reporte-vuelos.csv" className={`${buttonSecondarySmall} print:hidden`}>
+            Descargar detalle
+          </DownloadButton>
         </div>
 
         {!flights.length ? (

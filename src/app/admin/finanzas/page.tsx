@@ -5,6 +5,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { createClient } from "@/lib/supabase/server";
+import { DownloadButton } from "@/components/ui/DownloadButton";
+
 import { buttonPrimarySmall, buttonSecondarySmall, inputClass, labelClass, panelClass } from "@/lib/styles";
 import {
   firstDayOfCurrentMonth,
@@ -159,9 +161,12 @@ export default async function AdminFinancesPage({ searchParams }: PageProps) {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 print:hidden">
-            <Link href={exportFlightsHref} className={buttonPrimarySmall}><Download size={16} /> Exportar vuelos</Link>
-            <Link href={exportUsersHref} className={buttonSecondarySmall}><FileSpreadsheet size={16} /> Exportar usuarios</Link>
-            <PrintButton />
+            <DownloadButton href={exportFlightsHref} filename="finanzas-vuelos.csv" className={buttonPrimarySmall}>
+              Exportar Vuelos
+            </DownloadButton>
+            <DownloadButton href={exportUsersHref} filename="finanzas-usuarios.csv" className={buttonPrimarySmall}>
+              Exportar Usuarios
+            </DownloadButton>
           </div>
         </div>
       </section>
