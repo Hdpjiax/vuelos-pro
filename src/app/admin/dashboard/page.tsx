@@ -136,7 +136,7 @@ export default async function AdminDashboardPage() {
         <PendingActionCard icon={<MessageSquare size={20} />} title="Notificaciones" value={unreadNotifications ?? 0} href="/admin/notificaciones" />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+      <section className="grid gap-6 items-start xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
         <div className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
@@ -151,8 +151,8 @@ export default async function AdminDashboardPage() {
           {!urgentFlights?.length ? (
             <EmptyState title="No hay vuelos urgentes por ahora." description="Cuando los usuarios suban vuelos cercanos, aparecerán aquí." />
           ) : (
-            <div className="overflow-x-auto rounded-3xl border border-slate-200">
-              <table className="w-full min-w-[760px] border-collapse bg-white text-sm">
+            <div className="w-full rounded-3xl border border-slate-200 overflow-hidden">
+              <table className="w-full border-collapse bg-white text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.16em] text-slate-500">
                   <tr>
                     <th className="px-5 py-4">Folio</th>
@@ -204,9 +204,9 @@ export default async function AdminDashboardPage() {
           {!latestMessages?.length ? (
             <EmptyState title="Aún no hay mensajes." />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 min-w-0 w-full">
               {latestMessages.map((message) => (
-                <article key={message.id} className="rounded-3xl border border-slate-200 bg-white p-4">
+                <article key={message.id} className="rounded-3xl border border-slate-200 bg-white p-4 min-w-0 overflow-hidden">
                   <p className="text-sm font-black text-slate-900">
                     {message.profiles?.full_name || message.profiles?.email || "Usuario"}
                   </p>

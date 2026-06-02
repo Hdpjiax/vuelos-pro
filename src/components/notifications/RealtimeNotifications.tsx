@@ -147,7 +147,7 @@ export function RealtimeNotifications({ userId, role = "user", userName }: { use
             </span>
           ) : null}
         </button>
-        <form action={logoutAction}>
+        <form action={logoutAction} className="md:hidden">
           <button
             type="submit"
             className="inline-flex h-11 items-center gap-2 rounded-2xl bg-sky-950 px-3 text-xs font-black text-white ring-1 ring-sky-900 transition hover:bg-sky-900"
