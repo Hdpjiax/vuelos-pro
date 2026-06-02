@@ -24,22 +24,11 @@ export default async function UserFlightDetailPage({ params, searchParams }: Pag
   const query = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: flight }, { data: rawMessages }, { data: attachments }] = await Promise.all([
-    supabase
-      .from("flights")
-      .select("*")
-      .eq("id", id)
-      .single(),
-    supabase
-      .from("flight_messages")
-      .select("id, message, message_type, created_at, sender_id")
-      .eq("flight_id", id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("flight_attachments")
-      .select("id, file_path, file_name, file_type, category, created_at")
-      .eq("flight_id", id)
-      .order("created_at", { ascending: false }),
+  const [{ data: flight }, { data: rawMessages }, { data: attachments }, { data: { user } }] = await Promise.all([
+    supabase.from("flights").select("*").eq("id", id).single(),
+    supabase.from("flight_messages").select("id, message, message_type, created_at, sender_id").eq("flight_id", id).order("created_at", { ascending: true }),
+    supabase.from("flight_attachments").select("id, file_path, file_name, file_type, category, created_at").eq("flight_id", id).order("created_at", { ascending: false }),
+    supabase.auth.getUser(),
   ]);
 
   if (!flight) notFound();
@@ -99,7 +88,11 @@ export default async function UserFlightDetailPage({ params, searchParams }: Pag
         attachments={visibleAttachments as any}
       />
 
-      <FlightMessages messages={(messages ?? []) as any} />
+      <FlightMessages
+        messages={(messages ?? []) as any}
+        flightId={flight.id}
+        currentUserId={user?.id ?? ""}
+      />
     </div>
   );
 }

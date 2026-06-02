@@ -132,7 +132,7 @@ export default async function AdminFlightDetailPage({ params }: PageProps) {
       ].filter(Boolean) as string[]
     )
   );
-
+  const { data: { user: adminUser } } = await supabase.auth.getUser();
   const { data: relatedProfiles } = senderIds.length
     ? await supabase.from("profiles").select("id, full_name, email").in("id", senderIds)
     : { data: [] as ProfileSnippet[] };
@@ -195,7 +195,11 @@ export default async function AdminFlightDetailPage({ params }: PageProps) {
         action={addInternalNoteAction}
       />
 
-      <FlightMessages messages={messages as Parameters<typeof FlightMessages>[0]["messages"]} />
+      <FlightMessages
+        messages={messages as Parameters<typeof FlightMessages>[0]["messages"]}
+        flightId={flight.id}
+        currentUserId={adminUser?.id ?? ""}
+      />
     </div>
   );
 }

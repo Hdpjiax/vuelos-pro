@@ -9,7 +9,8 @@ import {
   UserCircle, BarChart3, WalletCards, Search, Files, Menu, X, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 type NavItem = {
   href: string;
   label: string;
@@ -77,21 +78,28 @@ function Brand({ role }: { role: "admin" | "user" }) {
 // ─── Botón de logout reutilizable ─────────────────────────────────────────────
 
 function LogoutButton({ compact = false }: { compact?: boolean }) {
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
   return (
-    <form action="/logout" method="POST">
-      <button
-        type="submit"
-        className={cn(
-          "flex items-center gap-2 rounded-2xl font-bold text-sm transition active:scale-95",
-          compact
-            ? "px-3 py-2 bg-white/10 text-white ring-1 ring-white/20 hover:bg-rose-500/80 hover:ring-rose-400"
-            : "w-full px-4 py-3 bg-white/10 text-sky-100 ring-1 ring-white/10 hover:bg-rose-500/80 hover:text-white hover:ring-rose-400"
-        )}
-      >
-        <LogOut size={16} className="shrink-0" />
-        {!compact && <span>Cerrar sesión</span>}
-      </button>
-    </form>
+    <button
+      type="button"
+      onClick={handleLogout}
+      className={cn(
+        "flex items-center gap-2 rounded-2xl font-bold text-sm transition active:scale-95",
+        compact
+          ? "px-3 py-2 bg-white/10 text-white ring-1 ring-white/20 hover:bg-rose-500/80 hover:ring-rose-400"
+          : "w-full px-4 py-3 bg-white/10 text-sky-100 ring-1 ring-white/10 hover:bg-rose-500/80 hover:text-white hover:ring-rose-400"
+      )}
+    >
+      <LogOut size={16} className="shrink-0" />
+      {!compact && <span>Cerrar sesión</span>}
+    </button>
   );
 }
 
@@ -216,15 +224,8 @@ export function Sidebar({ role, userName }: SidebarProps) {
               <span className="truncate text-[15px] font-bold text-sky-100">{userName}</span>
             </div>
           )}
-          <form action="/logout" method="POST">
-            <button
-              type="submit"
-              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-[15px] font-bold text-sky-100 ring-1 ring-white/10 transition hover:bg-rose-500/80 hover:text-white hover:ring-rose-400 active:scale-95"
-            >
-              <LogOut size={18} className="shrink-0" />
-              <span>Cerrar sesión</span>
-            </button>
-          </form>
+          <LogoutButton />
+
         </div>
       </aside>
     </>
