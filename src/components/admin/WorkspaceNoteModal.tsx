@@ -1,24 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef, useCallback } from "react";
 import {
-  AlertCircle,
-  Calendar,
-  CheckCircle2,
-  ChevronDown,
-  CreditCard,
-  GripHorizontal,
-  Link as LinkIcon,
-  Loader2,
-  NotebookPen,
-  Plane,
-  Save,
-  Search,
-  Tag,
-  X,
+  X, Plane, CreditCard, Tag, Save, Loader2,
+  CheckCircle2, AlertCircle, ChevronDown, Search,
+  NotebookPen, Calendar, Link as LinkIcon, GripHorizontal,
 } from "lucide-react";
-import { lookupBinAction, saveWorkspaceNoteAction, searchFlightsAction } from "@/app/admin/tools/workspace/actions";
+import { saveWorkspaceNoteAction, searchFlightsAction, lookupBinAction } from "@/app/admin/tools/workspace/actions";
 
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 export type WorkspaceLabel = "aprobado" | "declinado" | "ban" | "riesgoso";
 
 export interface FlightOption {
@@ -50,76 +40,13 @@ export interface WorkspaceNote {
   flights?: FlightOption | null;
 }
 
+// ── Etiquetas ─────────────────────────────────────────────────────────────────
 export const LABEL_CONFIG: Record<WorkspaceLabel, { label: string; bg: string; text: string; border: string; dot: string }> = {
-  aprobado: { label: "Aprobado", bg: "#dcfce7", text: "#15803d", border: "#86efac", dot: "#22c55e" },
+  aprobado:  { label: "Aprobado",  bg: "#dcfce7", text: "#15803d", border: "#86efac", dot: "#22c55e" },
   declinado: { label: "Declinado", bg: "#fee2e2", text: "#b91c1c", border: "#fca5a5", dot: "#ef4444" },
-  ban: { label: "Ban", bg: "#1e1b4b", text: "#c7d2fe", border: "#4338ca", dot: "#818cf8" },
-  riesgoso: { label: "Riesgoso", bg: "#fff7ed", text: "#c2410c", border: "#fdba74", dot: "#f97316" },
+  ban:       { label: "Ban",       bg: "#1e1b4b", text: "#c7d2fe", border: "#4338ca", dot: "#818cf8" },
+  riesgoso:  { label: "Riesgoso",  bg: "#fff7ed", text: "#c2410c", border: "#fdba74", dot: "#f97316" },
 };
-
-const DRAFT_KEY = "vuelospro.workspace.noteDraft.v2";
-const OPEN_KEY = "vuelospro.workspace.noteDraft.open";
-const MODAL_WIDTH = 760;
-const MODAL_HEIGHT_ESTIMATE = 760;
-
-interface ModalProps {
-  open: boolean;
-  onClose: () => void;
-  onSaved: () => void;
-}
-
-type DraftState = {
-  flightQuery: string;
-  selectedFlight: FlightOption | null;
-  ccNumber: string;
-  ccHolder: string;
-  ccAddress: string;
-  ccBank: string;
-  chargeDate: string;
-  siteUrl: string;
-  label: WorkspaceLabel;
-  content: string;
-  pos: { x: number; y: number };
-};
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function getModalSize() {
-  if (typeof window === "undefined") return { width: MODAL_WIDTH, height: MODAL_HEIGHT_ESTIMATE };
-  return {
-    width: Math.min(MODAL_WIDTH, Math.max(320, window.innerWidth - 16)),
-    height: Math.min(MODAL_HEIGHT_ESTIMATE, Math.max(420, window.innerHeight - 16)),
-  };
-}
-
-function getCenteredPos() {
-  if (typeof window === "undefined") return { x: 16, y: 16 };
-  const { width, height } = getModalSize();
-  return {
-    x: Math.max(8, Math.round((window.innerWidth - width) / 2)),
-    y: Math.max(8, Math.round((window.innerHeight - height) / 2)),
-  };
-}
-
-function restorePos(value: unknown) {
-  const centered = getCenteredPos();
-  if (typeof window === "undefined" || !value || typeof value !== "object") return centered;
-  const raw = value as { x?: unknown; y?: unknown };
-  const { width, height } = getModalSize();
-  const x = typeof raw.x === "number" ? raw.x : centered.x;
-  const y = typeof raw.y === "number" ? raw.y : centered.y;
-  return {
-    x: clamp(x, 8, Math.max(8, window.innerWidth - width - 8)),
-    y: clamp(y, 8, Math.max(8, window.innerHeight - Math.min(height, window.innerHeight - 16) - 8)),
-  };
-}
-
-function formatCardDisplay(raw: string) {
-  const digits = raw.replace(/\D/g, "").slice(0, 16);
-  return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
-}
 
 export function LabelBadge({ label }: { label: WorkspaceLabel }) {
   const c = LABEL_CONFIG[label];
@@ -134,417 +61,449 @@ export function LabelBadge({ label }: { label: WorkspaceLabel }) {
   );
 }
 
+function formatCardDisplay(raw: string) {
+  return raw.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
+}
+
+// ── Estilos comunes ───────────────────────────────────────────────────────────
+const S = {
+  // Label encima de cada campo
+  fieldLabel: {
+    display: "flex" as const,
+    alignItems: "center" as const,
+    gap: "6px",
+    fontSize: 11,
+    fontWeight: 800,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.1em",
+    color: "#1e293b",       // slate-800 — muy legible
+    marginBottom: 6,
+  },
+  // Sub-label gris dentro de grupos de inputs
+  subLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.08em",
+    color: "#334155",       // slate-700
+    marginBottom: 4,
+  },
+  // Input base
+  input: {
+    width: "100%",
+    borderRadius: 12,
+    border: "2px solid #cbd5e1",
+    padding: "9px 12px",
+    fontSize: 14,
+    fontWeight: 600,
+    outline: "none",
+    backgroundColor: "#f8fafc",
+    color: "#0f172a",       // slate-950 — máximo contraste
+  },
+};
+
+// ── Modal ──────────────────────────────────────────────────────────────────────
+interface ModalProps { open: boolean; onClose: () => void; onSaved: () => void; }
+
 export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
   const [isPending, startTransition] = useTransition();
-  const [flightQuery, setFlightQuery] = useState("");
-  const [flightResults, setFlightResults] = useState<FlightOption[]>([]);
+
+  const [flightQuery, setFlightQuery]       = useState("");
+  const [flightResults, setFlightResults]   = useState<FlightOption[]>([]);
   const [selectedFlight, setSelectedFlight] = useState<FlightOption | null>(null);
-  const [flightOpen, setFlightOpen] = useState(false);
-  const [searching, setSearching] = useState(false);
-  const [ccNumber, setCcNumber] = useState("");
-  const [ccHolder, setCcHolder] = useState("");
-  const [ccAddress, setCcAddress] = useState("");
-  const [ccBank, setCcBank] = useState("");
+  const [flightOpen, setFlightOpen]         = useState(false);
+  const [searching, setSearching]           = useState(false);
+
+  const [ccNumber, setCcNumber]     = useState("");
+  const [ccHolder, setCcHolder]     = useState("");
+  const [ccAddress, setCcAddress]   = useState("");
+  const [ccBank, setCcBank]         = useState("");
   const [binLoading, setBinLoading] = useState(false);
-  const [binInfo, setBinInfo] = useState<string | null>(null);
+  const [binInfo, setBinInfo]       = useState<string | null>(null);
+
   const [chargeDate, setChargeDate] = useState("");
-  const [siteUrl, setSiteUrl] = useState("");
-  const [label, setLabel] = useState<WorkspaceLabel>("aprobado");
+  const [siteUrl, setSiteUrl]       = useState("");
+
+  const [label, setLabel]     = useState<WorkspaceLabel>("aprobado");
   const [content, setContent] = useState("");
+
   const [saved, setSaved] = useState(false);
-  const [err, setErr] = useState("");
-  const [pos, setPos] = useState(() => getCenteredPos());
-  const [draftLoaded, setDraftLoaded] = useState(false);
-  const modalRef = useRef<HTMLDivElement>(null);
+  const [err, setErr]     = useState("");
+
+  // Drag
+  const modalRef   = useRef<HTMLDivElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
-  const dragging = useRef(false);
+  const dragging   = useRef(false);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
 
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(DRAFT_KEY);
-      if (raw) {
-        const draft = JSON.parse(raw) as Partial<DraftState>;
-        setFlightQuery(draft.flightQuery ?? "");
-        setSelectedFlight(draft.selectedFlight ?? null);
-        setCcNumber(draft.ccNumber ?? "");
-        setCcHolder(draft.ccHolder ?? "");
-        setCcAddress(draft.ccAddress ?? "");
-        setCcBank(draft.ccBank ?? "");
-        setChargeDate(draft.chargeDate ?? "");
-        setSiteUrl(draft.siteUrl ?? "");
-        setLabel(draft.label ?? "aprobado");
-        setContent(draft.content ?? "");
-        setPos(restorePos(draft.pos));
-      } else {
-        setPos(getCenteredPos());
-      }
-    } catch {
-      setPos(getCenteredPos());
-    } finally {
-      setDraftLoaded(true);
-    }
-  }, []);
+  useEffect(() => { if (open) setPos(null); }, [open]);
 
-  useEffect(() => {
-    if (!draftLoaded) return;
-    const draft: DraftState = { flightQuery, selectedFlight, ccNumber, ccHolder, ccAddress, ccBank, chargeDate, siteUrl, label, content, pos };
-    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [draftLoaded, flightQuery, selectedFlight, ccNumber, ccHolder, ccAddress, ccBank, chargeDate, siteUrl, label, content, pos]);
-
-  useEffect(() => {
-    window.localStorage.setItem(OPEN_KEY, open ? "1" : "0");
-  }, [open]);
-
-  useEffect(() => {
-    function onResize() {
-      setPos((current) => restorePos(current));
-    }
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  const startDrag = useCallback((e: React.MouseEvent) => {
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
     if (!modalRef.current) return;
-    const target = e.target as HTMLElement;
-    if (target.closest("button,input,textarea,a")) return;
-    const rect = modalRef.current.getBoundingClientRect();
     dragging.current = true;
+    const rect = modalRef.current.getBoundingClientRect();
     dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    document.body.style.userSelect = "none";
-    document.body.style.cursor = "grabbing";
     e.preventDefault();
   }, []);
 
   useEffect(() => {
-    function onMove(e: MouseEvent) {
-      if (!dragging.current || !modalRef.current) return;
-      const rect = modalRef.current.getBoundingClientRect();
-      const width = rect.width || getModalSize().width;
-      const height = rect.height || getModalSize().height;
-      const nextX = e.clientX - dragOffset.current.x;
-      const nextY = e.clientY - dragOffset.current.y;
-      setPos({
-        x: clamp(nextX, 8, Math.max(8, window.innerWidth - width - 8)),
-        y: clamp(nextY, 8, Math.max(8, window.innerHeight - Math.min(height, window.innerHeight - 16) - 8)),
-      });
-    }
-
-    function onUp() {
-      if (!dragging.current) return;
-      dragging.current = false;
-      document.body.style.userSelect = "";
-      document.body.style.cursor = "";
-    }
-
+    function onMove(e: MouseEvent) { if (dragging.current) setPos({ x: e.clientX - dragOffset.current.x, y: e.clientY - dragOffset.current.y }); }
+    function onUp() { dragging.current = false; }
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
-    window.addEventListener("mouseleave", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      window.removeEventListener("mouseleave", onUp);
-      document.body.style.userSelect = "";
-      document.body.style.cursor = "";
-    };
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
   }, []);
 
+  // BIN lookup
   useEffect(() => {
     const digits = ccNumber.replace(/\D/g, "");
     if (digits.length < 6) { setBinInfo(null); setCcBank(""); return; }
-    const bin = digits.slice(0, 6);
-    const t = window.setTimeout(async () => {
+    const t = setTimeout(async () => {
       setBinLoading(true);
-      const result = await lookupBinAction(bin);
+      const result = await lookupBinAction(digits.slice(0, 6));
       setBinLoading(false);
       if (result) {
         setBinInfo(`${result.bank} · ${result.scheme?.toUpperCase() ?? ""} · ${result.country ?? ""}`);
         setCcBank(result.bank ?? "");
-      } else {
-        setBinInfo(null);
-        setCcBank("");
-      }
+      } else { setBinInfo(null); setCcBank(""); }
     }, 400);
-    return () => window.clearTimeout(t);
+    return () => clearTimeout(t);
   }, [ccNumber]);
 
+  // Buscar vuelos
   useEffect(() => {
     if (flightQuery.length < 2) { setFlightResults([]); return; }
-    const t = window.setTimeout(async () => {
+    const t = setTimeout(async () => {
       setSearching(true);
       const res = await searchFlightsAction(flightQuery);
       setFlightResults(res as FlightOption[]);
       setSearching(false);
     }, 350);
-    return () => window.clearTimeout(t);
+    return () => clearTimeout(t);
   }, [flightQuery]);
 
+  // Auto-rellenar desde vuelo
   useEffect(() => {
     if (!selectedFlight) return;
     const f = selectedFlight;
     const paxLines = Array.isArray(f.passengers) && f.passengers.length
-      ? f.passengers.map((p, i) => `  ${i + 1}. ${p.full_name ?? "N/A"}${p.birth_date ? " | DOB: " + p.birth_date : ""}${p.document ? " | Doc: " + p.document : ""}`).join("\n")
+      ? f.passengers.map((p, i) =>
+          `  ${i + 1}. ${p.full_name ?? "N/A"}${p.birth_date ? " | DOB: " + p.birth_date : ""}${p.document ? " | Doc: " + p.document : ""}`
+        ).join("\n")
       : "  N/A";
     const text = [
-      `Vuelo: ${f.flight_folio ?? f.id}`,
-      `Tipo: ${f.flight_type ?? "sencillo"}`,
-      `Ida: ${f.flight_date}${f.flight_time ? " " + f.flight_time : ""}`,
-      f.return_flight_date ? `Regreso: ${f.return_flight_date}` : null,
-      `Tarifa: ${f.fare_type} | Total: $${f.total_amount?.toLocaleString("es-MX") ?? "N/A"} MXN`,
-      `Cliente: ${f.profiles?.full_name ?? "Desconocido"} <${f.profiles?.email ?? ""}>`,
-      "Pasajeros:",
+      `✈️  Vuelo: ${f.flight_folio ?? f.id}`,
+      `📍  Tipo: ${f.flight_type ?? "sencillo"}`,
+      `📅  Ida: ${f.flight_date}${f.flight_time ? " " + f.flight_time : ""}`,
+      f.return_flight_date ? `🔄  Regreso: ${f.return_flight_date}` : null,
+      `💰  Tarifa: ${f.fare_type}  |  Total: $${f.total_amount?.toLocaleString("es-MX") ?? "N/A"} MXN`,
+      `👤  Cliente: ${f.profiles?.full_name ?? "Desconocido"} <${f.profiles?.email ?? ""}>`,
+      `🧳  Pasajeros:`,
       paxLines,
       "",
       "--- Notas del agente ---",
       "",
-    ].filter(Boolean).join("\n");
-    setContent((prev) => prev.trim() ? prev : text);
+    ].filter((l) => l !== null).join("\n");
+    setContent(text);
   }, [selectedFlight]);
 
-  function clearDraftState() {
+  function reset() {
     setFlightQuery(""); setFlightResults([]); setSelectedFlight(null); setFlightOpen(false);
     setCcNumber(""); setCcHolder(""); setCcAddress(""); setCcBank(""); setBinInfo(null);
-    setChargeDate(""); setSiteUrl(""); setLabel("aprobado"); setContent(""); setSaved(false); setErr("");
-    setPos(getCenteredPos());
-    window.localStorage.removeItem(DRAFT_KEY);
-    window.localStorage.setItem(OPEN_KEY, "0");
+    setChargeDate(""); setSiteUrl("");
+    setLabel("aprobado"); setContent(""); setSaved(false); setErr("");
   }
-
-  function handleClose() {
-    setErr("");
-    setSaved(false);
-    window.localStorage.setItem(OPEN_KEY, "0");
-    onClose();
-  }
+  function handleClose() { reset(); onClose(); }
 
   function handleSave() {
     if (!content.trim()) { setErr("El contenido no puede estar vacío."); return; }
     setErr("");
     startTransition(async () => {
-      const digits = ccNumber.replace(/\D/g, "");
       const result = await saveWorkspaceNoteAction({
-        flight_id: selectedFlight?.id ?? null,
-        cc_number: digits || null,
-        cc_holder: ccHolder || null,
-        cc_address: ccAddress || null,
-        cc_bank: ccBank || null,
+        flight_id:      selectedFlight?.id ?? null,
+        cc_number:      ccNumber.replace(/\D/g, "") || null,
+        cc_holder:      ccHolder || null,
+        cc_address:     ccAddress || null,
+        cc_bank:        ccBank || null,
         cc_charge_date: chargeDate || null,
-        site_url: siteUrl || null,
+        site_url:       siteUrl || null,
         label,
         content,
       });
       if (result.error) { setErr(result.error); return; }
       setSaved(true);
-      window.setTimeout(() => { onSaved(); clearDraftState(); onClose(); }, 900);
+      setTimeout(() => { onSaved(); reset(); onClose(); }, 1200);
     });
   }
 
   if (!open) return null;
 
+  const modalStyle: React.CSSProperties = pos
+    ? { position: "fixed", left: pos.x, top: pos.y, transform: "none", maxHeight: "92vh" }
+    : { position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)", maxHeight: "92vh" };
+
   return (
-    <div className="fixed inset-0 z-[9999]" style={{ pointerEvents: "none" }}>
+    <div className="fixed inset-0 z-50" style={{ pointerEvents: "none" }}>
       <div
         ref={modalRef}
-        className="flex max-h-[calc(100vh-1rem)] w-[min(760px,calc(100vw-1rem))] flex-col overflow-hidden rounded-[2rem] border-2 border-slate-300 bg-white text-slate-950 shadow-2xl shadow-slate-950/25 dark:border-cyan-400/25 dark:bg-slate-950 dark:text-white dark:shadow-fuchsia-950/40"
-        style={{ position: "fixed", left: pos.x, top: pos.y, pointerEvents: "auto" }}
+        className="flex flex-col overflow-hidden rounded-3xl"
+        style={{
+          ...modalStyle,
+          width: 700,
+          pointerEvents: "auto",
+          zIndex: 51,
+          backgroundColor: "#ffffff",
+          border: "2px solid #e2e8f0",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.22), 0 8px 24px rgba(99,102,241,0.12)",
+        }}
       >
+        {/* ── Header / drag handle ── */}
         <div
-          className="flex cursor-grab items-center justify-between border-b border-slate-300 bg-gradient-to-r from-slate-950 via-indigo-950 to-violet-950 px-6 py-4 text-white active:cursor-grabbing dark:border-cyan-400/15 dark:from-slate-950 dark:via-indigo-950 dark:to-fuchsia-950"
-          style={{ userSelect: "none" }}
-          onMouseDown={startDrag}
+          className="flex cursor-grab items-center justify-between px-6 py-4 active:cursor-grabbing"
+          style={{
+            background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+            userSelect: "none",
+          }}
+          onMouseDown={onMouseDown}
         >
-          <div className="flex min-w-0 items-center gap-3">
-            <GripHorizontal size={16} className="shrink-0 text-cyan-100" />
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 text-white shadow-lg shadow-violet-500/30">
-              <NotebookPen size={17} />
+          <div className="flex items-center gap-3">
+            <GripHorizontal size={16} style={{ color: "rgba(255,255,255,0.6)" }} />
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
+              <NotebookPen size={17} color="#fff" />
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-base font-black text-white">Nueva nota — Workspace</p>
-              <p className="truncate text-xs font-semibold text-cyan-100/85">Click y arrastra desde esta barra · borrador automático activo</p>
+            <div>
+              <p style={{ color: "#ffffff", fontWeight: 900, fontSize: 15, lineHeight: 1.2 }}>Nueva nota — Workspace</p>
+              <p style={{ color: "rgba(255,255,255,0.72)", fontWeight: 500, fontSize: 11, marginTop: 2 }}>
+                Arrastra para mover · el fondo sigue activo
+              </p>
             </div>
           </div>
-          <button onClick={handleClose} className="rounded-xl p-2 text-cyan-100/80 transition hover:bg-white/10 hover:text-white" aria-label="Cerrar ventana">
+          <button
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={handleClose}
+            className="rounded-xl p-2 transition-all hover:bg-white/20"
+            style={{ color: "rgba(255,255,255,0.8)" }}
+          >
             <X size={18} />
           </button>
         </div>
 
-        <div className="flex-1 space-y-5 overflow-y-auto bg-white px-6 py-5 text-slate-950 dark:bg-[radial-gradient(circle_at_20%_0%,rgba(34,211,238,.12),transparent_35%),radial-gradient(circle_at_80%_20%,rgba(217,70,239,.16),transparent_32%),#020617] dark:text-white">
+        {/* ── Body ── */}
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+
+          {/* Importar vuelo */}
           <div>
-            <SectionLabel icon={<Plane size={12} />} text="Importar vuelo (opcional)" />
+            <p style={S.fieldLabel}><Plane size={13} color="#4f46e5" /> Importar vuelo <span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "#64748b" }}>(opcional)</span></p>
             <div className="relative">
-              <div className={`flex cursor-text items-center gap-2 rounded-2xl border-2 px-4 py-3 transition ${selectedFlight ? "border-violet-500" : "border-slate-400 dark:border-cyan-400/35"} bg-white shadow-sm dark:bg-white/10`}>
-                <Search size={14} className="shrink-0 text-slate-600 dark:text-cyan-200" />
+              <div
+                className="flex items-center gap-2 rounded-2xl border-2 px-4 py-2.5"
+                style={{ backgroundColor: "#f1f5f9", borderColor: selectedFlight ? "#6366f1" : "#94a3b8" }}
+              >
+                <Search size={15} style={{ color: "#64748b", flexShrink: 0 }} />
                 <input
-                  className="flex-1 bg-transparent text-sm font-bold text-slate-950 outline-none placeholder:text-slate-500 dark:text-white dark:placeholder:text-cyan-100/45"
-                  placeholder="Buscar por folio, nombre o correo..."
+                  style={{ flex: 1, background: "transparent", outline: "none", fontSize: 14, fontWeight: 600, color: "#0f172a" }}
+                  placeholder="Buscar por folio, nombre o correo…"
                   value={flightQuery}
                   onChange={(e) => { setFlightQuery(e.target.value); setFlightOpen(true); }}
                   onFocus={() => flightQuery.length >= 2 && setFlightOpen(true)}
                 />
-                {searching ? <Loader2 size={14} className="animate-spin text-violet-600 dark:text-cyan-200" /> : <ChevronDown size={14} className="shrink-0 text-slate-600 dark:text-cyan-200" />}
+                {searching
+                  ? <Loader2 size={14} className="animate-spin" style={{ color: "#6366f1" }} />
+                  : <ChevronDown size={14} style={{ color: "#64748b", flexShrink: 0 }} />}
               </div>
+
               {flightOpen && flightResults.length > 0 && (
-                <div className="absolute left-0 right-0 top-full z-20 mt-2 max-h-64 overflow-y-auto rounded-2xl border-2 border-slate-300 bg-white shadow-2xl dark:border-cyan-400/20 dark:bg-slate-950">
+                <div
+                  className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border-2 border-slate-200"
+                  style={{ backgroundColor: "#fff", boxShadow: "0 16px 40px rgba(0,0,0,0.14)" }}
+                >
                   {flightResults.map((f) => {
                     const pax = Array.isArray(f.passengers) ? f.passengers : [];
                     return (
-                      <button key={f.id} className="flex w-full flex-col gap-0.5 px-4 py-3 text-left transition hover:bg-violet-50 dark:hover:bg-white/10" onClick={() => { setSelectedFlight(f); setFlightQuery(f.flight_folio ?? f.id); setFlightOpen(false); }}>
+                      <button
+                        key={f.id}
+                        className="flex w-full flex-col gap-0.5 px-4 py-3 text-left transition-colors hover:bg-violet-50"
+                        onClick={() => { setSelectedFlight(f); setFlightQuery(f.flight_folio ?? f.id); setFlightOpen(false); }}
+                      >
                         <div className="flex items-center gap-2">
-                          <Plane size={13} className="shrink-0 text-violet-600 dark:text-cyan-300" />
-                          <span className="text-sm font-black text-slate-950 dark:text-white">{f.flight_folio ?? f.id}</span>
-                          <span className="ml-auto text-[11px] font-black text-violet-700 dark:text-fuchsia-200">${f.total_amount?.toLocaleString("es-MX")} MXN</span>
+                          <Plane size={13} style={{ color: "#6366f1", flexShrink: 0 }} />
+                          <span style={{ fontWeight: 800, fontSize: 13, color: "#0f172a" }}>{f.flight_folio ?? f.id}</span>
+                          <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "#6366f1" }}>
+                            ${f.total_amount?.toLocaleString("es-MX")} MXN
+                          </span>
                         </div>
-                        <p className="pl-5 text-[11px] font-semibold text-slate-600 dark:text-cyan-100/70">{f.profiles?.full_name ?? "Usuario"} · {f.flight_date}{f.return_flight_date ? " → " + f.return_flight_date : ""} · {f.fare_type}</p>
-                        {pax.length > 0 && <p className="pl-5 text-[10px] font-semibold text-slate-500 dark:text-cyan-100/45">Pax: {pax.map((p) => p.full_name).filter(Boolean).join(", ")}</p>}
+                        <p style={{ paddingLeft: 21, fontSize: 11, color: "#475569", fontWeight: 600 }}>
+                          {f.profiles?.full_name ?? "Usuario"} · {f.flight_date}{f.return_flight_date ? " → " + f.return_flight_date : ""} · {f.fare_type}
+                        </p>
+                        {pax.length > 0 && (
+                          <p style={{ paddingLeft: 21, fontSize: 10, color: "#94a3b8" }}>
+                            Pax: {pax.map((p) => p.full_name).filter(Boolean).join(", ")}
+                          </p>
+                        )}
                       </button>
                     );
                   })}
                 </div>
               )}
             </div>
+
             {selectedFlight && (
-              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-3 py-2 dark:border-cyan-400/20 dark:bg-cyan-400/10">
-                <Plane size={13} className="shrink-0 text-violet-700 dark:text-cyan-200" />
-                <span className="text-xs font-black text-violet-800 dark:text-cyan-100">{selectedFlight.flight_folio ?? selectedFlight.id}</span>
-                <span className="text-xs font-bold text-violet-700 dark:text-cyan-100/70">· {selectedFlight.profiles?.full_name} · {selectedFlight.flight_date}</span>
-                <button onClick={() => { setSelectedFlight(null); setFlightQuery(""); }} className="ml-auto text-violet-600 hover:text-violet-900 dark:text-cyan-100/60 dark:hover:text-white"><X size={12} /></button>
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: "#ede9fe", border: "1.5px solid #a5b4fc" }}>
+                <Plane size={13} style={{ color: "#4f46e5", flexShrink: 0 }} />
+                <span style={{ fontSize: 12, fontWeight: 800, color: "#3730a3" }}>{selectedFlight.flight_folio ?? selectedFlight.id}</span>
+                <span style={{ fontSize: 11, color: "#6d28d9" }}>· {selectedFlight.profiles?.full_name} · {selectedFlight.flight_date}</span>
+                <button onClick={() => { setSelectedFlight(null); setFlightQuery(""); setContent(""); }} style={{ marginLeft: "auto", color: "#7c3aed" }}><X size={13} /></button>
               </div>
             )}
           </div>
 
-          <div>
-            <SectionLabel icon={<CreditCard size={12} />} text="Tarjeta de pago (CC) — opcional" />
+          {/* Tarjeta CC */}
+          <div style={{ borderTop: "1.5px solid #e2e8f0", paddingTop: 16 }}>
+            <p style={S.fieldLabel}><CreditCard size={13} color="#4f46e5" /> Tarjeta de pago (CC) <span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "#64748b" }}>(opcional)</span></p>
+
+            {/* Número */}
             <div className="mb-3">
-              <SmallLabel text="Número de tarjeta (16 dígitos)" />
+              <p style={S.subLabel}>Número de tarjeta (16 dígitos)</p>
               <div className="relative">
-                <input value={formatCardDisplay(ccNumber)} onChange={(e) => setCcNumber(e.target.value.replace(/\D/g, "").slice(0, 16))} placeholder="0000 0000 0000 0000" className="workspace-input font-mono tracking-widest" inputMode="numeric" />
-                {binLoading && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-violet-600" />}
+                <input
+                  value={formatCardDisplay(ccNumber)}
+                  onChange={(e) => setCcNumber(e.target.value.replace(/\D/g, "").slice(0, 16))}
+                  placeholder="0000 0000 0000 0000"
+                  inputMode="numeric"
+                  style={{
+                    ...S.input,
+                    fontFamily: "monospace",
+                    letterSpacing: "0.14em",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    borderColor: ccNumber.replace(/\D/g, "").length >= 6 ? "#6366f1" : "#cbd5e1",
+                    paddingRight: 40,
+                  }}
+                />
+                {binLoading && <Loader2 size={14} className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin" style={{ color: "#6366f1" }} />}
               </div>
               {binInfo && (
-                <div className="mt-2 flex items-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-3 py-2 dark:border-cyan-400/20 dark:bg-cyan-400/10">
-                  <CreditCard size={12} className="text-violet-700 dark:text-cyan-200" />
-                  <span className="text-[11px] font-black text-violet-800 dark:text-cyan-100">{binInfo}</span>
-                  {ccBank && <span className="ml-auto rounded-lg bg-violet-100 px-2 py-0.5 text-[10px] font-black text-violet-700 dark:bg-white/10 dark:text-fuchsia-100">{ccBank}</span>}
+                <div className="mt-1.5 flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: "#ede9fe", border: "1.5px solid #a5b4fc" }}>
+                  <CreditCard size={12} style={{ color: "#4f46e5" }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#3730a3" }}>{binInfo}</span>
+                  {ccBank && <span style={{ marginLeft: "auto", borderRadius: 8, backgroundColor: "#c7d2fe", padding: "2px 8px", fontSize: 10, fontWeight: 800, color: "#3730a3" }}>{ccBank}</span>}
                 </div>
               )}
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <Field label="Nombre del titular" value={ccHolder} onChange={setCcHolder} placeholder="Nombre completo" maxLength={80} />
-              <Field label="Dirección de facturación" value={ccAddress} onChange={setCcAddress} placeholder="Ciudad, Estado, País" maxLength={120} />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p style={S.subLabel}>Nombre del titular</p>
+                <input value={ccHolder} onChange={(e) => setCcHolder(e.target.value)} placeholder="Nombre completo" maxLength={80} style={S.input} />
+              </div>
+              <div>
+                <p style={S.subLabel}>Dirección de facturación</p>
+                <input value={ccAddress} onChange={(e) => setCcAddress(e.target.value)} placeholder="Ciudad, Estado, País" maxLength={120} style={S.input} />
+              </div>
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <DateField label="Fecha del cargo" value={chargeDate} onChange={setChargeDate} />
-            <UrlField value={siteUrl} onChange={setSiteUrl} />
+          {/* Fecha cargo + Sitio */}
+          <div className="grid grid-cols-2 gap-3" style={{ borderTop: "1.5px solid #e2e8f0", paddingTop: 16 }}>
+            <div>
+              <p style={S.fieldLabel}><Calendar size={13} color="#4f46e5" /> Fecha del cargo</p>
+              <input type="date" value={chargeDate} onChange={(e) => setChargeDate(e.target.value)} style={S.input} />
+            </div>
+            <div>
+              <p style={S.fieldLabel}><LinkIcon size={13} color="#4f46e5" /> Sitio / URL</p>
+              <input type="url" value={siteUrl} onChange={(e) => setSiteUrl(e.target.value)} placeholder="https://" style={S.input} />
+            </div>
           </div>
 
-          <div>
-            <SectionLabel icon={<Tag size={12} />} text="Etiqueta" />
+          {/* Etiqueta */}
+          <div style={{ borderTop: "1.5px solid #e2e8f0", paddingTop: 16 }}>
+            <p style={S.fieldLabel}><Tag size={13} color="#4f46e5" /> Etiqueta</p>
             <div className="flex flex-wrap gap-2">
               {(Object.entries(LABEL_CONFIG) as [WorkspaceLabel, typeof LABEL_CONFIG[WorkspaceLabel]][]).map(([key, cfg]) => (
-                <button key={key} onClick={() => setLabel(key)} className="flex items-center gap-1.5 rounded-2xl border-2 px-4 py-2 text-xs font-black uppercase tracking-wider transition-all hover:-translate-y-0.5" style={{ backgroundColor: label === key ? cfg.bg : "#ffffff", color: label === key ? cfg.text : "#334155", borderColor: label === key ? cfg.border : "#cbd5e1", transform: label === key ? "scale(1.03)" : "scale(1)" }}>
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: label === key ? cfg.dot : "#64748b" }} />
+                <button
+                  key={key}
+                  onClick={() => setLabel(key)}
+                  className="flex items-center gap-1.5 rounded-2xl border-2 px-4 py-2 text-xs font-black uppercase tracking-wider transition-all"
+                  style={{
+                    backgroundColor: label === key ? cfg.bg  : "#f1f5f9",
+                    color:           label === key ? cfg.text : "#334155",
+                    borderColor:     label === key ? cfg.border : "#cbd5e1",
+                    transform:       label === key ? "scale(1.05)" : "scale(1)",
+                    fontWeight: 800,
+                  }}
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: label === key ? cfg.dot : "#94a3b8" }} />
                   {cfg.label}
                 </button>
               ))}
             </div>
           </div>
 
-          <div>
-            <SectionLabel icon={<NotebookPen size={12} />} text="Contenido de la nota" />
-            <textarea rows={10} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Escribe aquí los detalles del caso..." className="workspace-input min-h-[180px] resize-y p-4 font-mono leading-relaxed" />
-            <p className="mt-1 text-right text-[11px] font-bold text-slate-600 dark:text-cyan-100/60">{content.length} caracteres · guardado automático local</p>
+          {/* Contenido */}
+          <div style={{ borderTop: "1.5px solid #e2e8f0", paddingTop: 16 }}>
+            <p style={S.fieldLabel}><NotebookPen size={13} color="#4f46e5" /> Contenido de la nota</p>
+            <textarea
+              rows={10}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Escribe aquí los detalles del caso…"
+              style={{
+                width: "100%",
+                resize: "vertical",
+                borderRadius: 16,
+                border: "2px solid #cbd5e1",
+                padding: 16,
+                fontFamily: "monospace",
+                fontSize: 13,
+                lineHeight: 1.7,
+                outline: "none",
+                backgroundColor: "#f8fafc",
+                color: "#0f172a",
+                minHeight: 160,
+              }}
+            />
+            <p style={{ textAlign: "right", fontSize: 11, color: "#64748b", marginTop: 4, fontWeight: 600 }}>{content.length} caracteres</p>
           </div>
 
-          {err && <div className="flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 dark:border-red-400/30 dark:bg-red-500/10"><AlertCircle size={14} className="text-red-600" /><p className="text-xs font-bold text-red-800 dark:text-red-200">{err}</p></div>}
-          {saved && <div className="flex items-center gap-2 rounded-xl border-2 border-green-200 bg-green-50 px-4 py-3 dark:border-green-400/30 dark:bg-green-500/10"><CheckCircle2 size={14} className="text-green-700" /><p className="text-xs font-black text-green-800 dark:text-green-200">Nota guardada exitosamente.</p></div>}
+          {err && (
+            <div className="flex items-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: "#fef2f2", border: "1.5px solid #fca5a5" }}>
+              <AlertCircle size={14} style={{ color: "#dc2626" }} />
+              <p style={{ fontSize: 12, fontWeight: 700, color: "#b91c1c" }}>{err}</p>
+            </div>
+          )}
+          {saved && (
+            <div className="flex items-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: "#f0fdf4", border: "1.5px solid #86efac" }}>
+              <CheckCircle2 size={14} style={{ color: "#16a34a" }} />
+              <p style={{ fontSize: 12, fontWeight: 800, color: "#15803d" }}>¡Nota guardada exitosamente!</p>
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-slate-300 bg-slate-100 px-6 py-4 dark:border-cyan-400/15 dark:bg-slate-950">
-          <button onClick={handleClose} className="rounded-2xl border-2 border-slate-400 bg-white px-5 py-2.5 text-sm font-black text-slate-800 transition hover:border-slate-600 hover:bg-slate-50 dark:border-cyan-400/25 dark:bg-white/10 dark:text-cyan-100 dark:hover:bg-white/15">
-            Cerrar y conservar
+        {/* ── Footer ── */}
+        <div
+          className="flex items-center justify-between px-6 py-4"
+          style={{ borderTop: "2px solid #e2e8f0", backgroundColor: "#f8fafc" }}
+        >
+          <button
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={handleClose}
+            className="rounded-2xl border-2 px-5 py-2.5 text-sm font-bold transition-all hover:border-slate-400 hover:bg-slate-100"
+            style={{ borderColor: "#cbd5e1", backgroundColor: "#fff", color: "#334155" }}
+          >
+            Cancelar
           </button>
-          <div className="flex items-center gap-2">
-            <button onClick={clearDraftState} className="rounded-2xl border-2 border-rose-300 bg-rose-50 px-4 py-2.5 text-sm font-black text-rose-800 transition hover:bg-rose-100 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-200">
-              Limpiar
-            </button>
-            <button onClick={handleSave} disabled={isPending || !content.trim()} className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 px-6 py-2.5 text-sm font-black text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
-              {isPending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-              {isPending ? "Guardando..." : "Guardar nota"}
-            </button>
-          </div>
+          <button
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={handleSave}
+            disabled={isPending || !content.trim()}
+            className="flex items-center gap-2 rounded-2xl px-6 py-2.5 text-sm font-black text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ background: "linear-gradient(135deg, #6366f1, #7c3aed)", boxShadow: "0 4px 14px rgba(99,102,241,0.4)" }}
+          >
+            {isPending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+            {isPending ? "Guardando…" : "Guardar nota"}
+          </button>
         </div>
       </div>
-      <style jsx>{`
-        .workspace-input {
-          width: 100%;
-          border-radius: 0.9rem;
-          border: 2px solid #94a3b8;
-          background: #ffffff;
-          padding: 0.7rem 0.85rem;
-          color: #020617;
-          font-size: 0.875rem;
-          font-weight: 700;
-          outline: none;
-          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-        }
-        .workspace-input::placeholder {
-          color: #64748b;
-          opacity: 1;
-        }
-        .workspace-input:focus {
-          border-color: #7c3aed;
-          box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.16);
-        }
-        :global(.dark) .workspace-input {
-          border-color: rgba(103, 232, 249, 0.35);
-          background: rgba(255, 255, 255, 0.1);
-          color: #ffffff;
-          box-shadow: none;
-        }
-        :global(.dark) .workspace-input::placeholder {
-          color: rgba(207, 250, 254, 0.45);
-        }
-        :global(.dark) .workspace-input:focus {
-          border-color: rgba(34, 211, 238, 0.75);
-          box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function SectionLabel({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-cyan-100">{icon}{text}</label>;
-}
-
-function SmallLabel({ text }: { text: string }) {
-  return <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-cyan-100/70">{text}</p>;
-}
-
-function Field({ label, value, onChange, placeholder, maxLength }: { label: string; value: string; onChange: (value: string) => void; placeholder: string; maxLength: number }) {
-  return (
-    <div>
-      <SmallLabel text={label} />
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} className="workspace-input" />
-    </div>
-  );
-}
-
-function DateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return (
-    <div>
-      <SectionLabel icon={<Calendar size={12} />} text={label} />
-      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} className="workspace-input" />
-    </div>
-  );
-}
-
-function UrlField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  return (
-    <div>
-      <SectionLabel icon={<LinkIcon size={12} />} text="Sitio / URL" />
-      <input type="url" value={value} onChange={(e) => onChange(e.target.value)} placeholder="https://" className="workspace-input" />
     </div>
   );
 }
