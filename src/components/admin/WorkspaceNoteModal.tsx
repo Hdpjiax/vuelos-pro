@@ -97,7 +97,7 @@ const S = {
     fontSize: 14,
     fontWeight: 600,
     outline: "none",
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fcf8f8",
     color: "#0f172a",       // slate-950 — máximo contraste
   },
 };
@@ -319,8 +319,8 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
             {selectedFlight && (
               <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-3 py-2">
                 <Plane size={13} className="shrink-0 text-violet-700" />
-                <span className="text-xs font-black text-violet-800">{selectedFlight.flight_folio ?? selectedFlight.id}</span>
-                <span className="text-xs font-bold text-violet-700">· {selectedFlight.profiles?.full_name} · {selectedFlight.flight_date}</span>
+                <span className="text-s font-black text-violet-800">{selectedFlight.flight_folio ?? selectedFlight.id}</span>
+                <span className="text-s font-bold text-violet-700">· {selectedFlight.profiles?.full_name} · {selectedFlight.flight_date}</span>
                 <button onClick={() => { setSelectedFlight(null); setFlightQuery(""); }} className="ml-auto text-violet-600 hover:text-violet-900"><X size={12} /></button>
               </div>
             )}
@@ -337,8 +337,8 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
               {binInfo && (
                 <div className="mt-2 flex items-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-3 py-2">
                   <CreditCard size={12} className="text-violet-700" />
-                  <span className="text-[11px] font-black text-violet-800">{binInfo}</span>
-                  {ccBank && <span className="ml-auto rounded-lg bg-violet-100 px-2 py-0.5 text-[10px] font-black text-violet-700">{ccBank}</span>}
+                  <span className="text-[14px] font-black text-violet-800">{binInfo}</span>
+                  {ccBank && <span className="ml-auto rounded-lg bg-violet-100 px-2 py-0.5 text-[14px] font-black text-violet-700">{ccBank}</span>}
                 </div>
               )}
             </div>
