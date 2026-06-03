@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Headphones, X, Send, MoreHorizontal, Phone, Mail, MessageCircle, Minimize2 } from 'lucide-react';
+import { Headphones, X, Send, MoreHorizontal, Phone, Mail, Minimize2, MessageCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { sendSupportMessageAction } from '@/lib/actions/support-chat';
 
@@ -16,13 +16,7 @@ type Msg = {
 const WHATSAPP_URL = `https://wa.me/524431318488?text=Hola,%20necesito%20ayuda`;
 const EMAIL_URL = `mailto:garia350@gmail.com?subject=Soporte%20-%20VuelosPro`;
 
-export function SupportChat({
-    userId,
-    userName,
-}: {
-    userId: string;
-    userName?: string;
-}) {
+export function SupportChat({ userId, userName }: { userId: string; userName?: string }) {
     const [open, setOpen] = useState(false);
     const [minimized, setMinimized] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
@@ -33,7 +27,7 @@ export function SupportChat({
     const bottomRef = useRef<HTMLDivElement>(null);
     const supabase = useMemo(() => createClient(), []);
 
-    // Cargar mensajes cuando abre
+    // Cargar mensajes al abrir
     useEffect(() => {
         if (!open) return;
         setLoading(true);
@@ -49,9 +43,8 @@ export function SupportChat({
             });
     }, [open, userId, supabase]);
 
-    // Realtime
+    // Realtime — suscripción siempre activa (no solo cuando está abierto)
     useEffect(() => {
-        if (!open) return;
         const channel = supabase
             .channel(`support-chat-${userId}`)
             .on('postgres_changes', {
@@ -65,12 +58,12 @@ export function SupportChat({
             })
             .subscribe();
         return () => { supabase.removeChannel(channel); };
-    }, [open, userId, supabase]);
+    }, [userId, supabase]);
 
     // Scroll al fondo
     useEffect(() => {
-        if (!minimized) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, minimized]);
+        if (!minimized && open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, minimized, open]);
 
     async function handleSend(e: React.FormEvent) {
         e.preventDefault();
@@ -78,21 +71,35 @@ export function SupportChat({
         if (!trimmed || sending) return;
         setSending(true);
         setText('');
+
+        // Optimistic: agrega el mensaje localmente de inmediato
+        const tempMsg: Msg = {
+            id: `temp-${Date.now()}`,
+            message: trimmed,
+            sender_id: userId,
+            created_at: new Date().toISOString(),
+        };
+        setMessages((cur) => [...cur, tempMsg]);
+
         const fd = new FormData();
         fd.append('message', trimmed);
         fd.append('user_id', userId);
         await sendSupportMessageAction(fd);
         setSending(false);
     }
-
+    // Escucha el evento del botón en la página de mensajes
+    useEffect(() => {
+        function handleOpen() { setOpen(true); setMinimized(false); }
+        window.addEventListener('open-support-chat', handleOpen);
+        return () => window.removeEventListener('open-support-chat', handleOpen);
+    }, []);
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-            {/* Ventana del chat */}
+        // hidden en móvil — en móvil se usan las opciones del menú del Sidebar
+        <div className="hidden md:flex fixed bottom-6 right-6 z-50 flex-col items-end gap-2">
             {open && (
-                <div
-                    className={`flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-sky-950 shadow-2xl transition-all duration-300 ${minimized ? 'h-14 w-72' : 'h-[480px] w-80 sm:w-96'
-                        }`}
-                >
+                <div className={`flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-sky-950 shadow-2xl transition-all duration-200 ${minimized ? 'h-14 w-72' : 'h-[480px] w-80 lg:w-96'
+                    }`}>
+
                     {/* Header */}
                     <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -104,6 +111,7 @@ export function SupportChat({
                                 {!minimized && <p className="text-[10px] text-sky-300/70">VuelosPro · Chat directo</p>}
                             </div>
                         </div>
+
                         <div className="flex items-center gap-1">
                             {/* 3 puntitos */}
                             <div className="relative">
@@ -115,8 +123,8 @@ export function SupportChat({
                                 </button>
                                 {showOptions && (
                                     <>
-                                        <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
-                                        <div className="absolute bottom-10 right-0 z-50 w-56 overflow-hidden rounded-2xl border border-white/10 bg-sky-900 shadow-xl">
+                                        <div className="fixed inset-0 z-[60]" onClick={() => setShowOptions(false)} />
+                                        <div className="absolute bottom-full right-0 z-[70] mb-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-sky-900 shadow-2xl">
                                             <p className="px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-sky-400/60">
                                                 Otras opciones
                                             </p>
@@ -144,16 +152,15 @@ export function SupportChat({
                                     </>
                                 )}
                             </div>
-                            {/* Minimizar */}
+
                             <button
                                 onClick={() => setMinimized((v) => !v)}
                                 className="flex h-8 w-8 items-center justify-center rounded-xl text-sky-300 transition hover:bg-white/10"
                             >
                                 <Minimize2 size={15} />
                             </button>
-                            {/* Cerrar */}
                             <button
-                                onClick={() => { setOpen(false); setMinimized(false); }}
+                                onClick={() => { setOpen(false); setMinimized(false); setShowOptions(false); }}
                                 className="flex h-8 w-8 items-center justify-center rounded-xl text-sky-300 transition hover:bg-white/10"
                             >
                                 <X size={15} />
@@ -161,13 +168,11 @@ export function SupportChat({
                         </div>
                     </div>
 
-                    {/* Mensajes */}
+                    {/* Mensajes + Input */}
                     {!minimized && (
                         <>
                             <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-3">
-                                {loading && (
-                                    <p className="m-auto text-xs text-sky-300/60">Cargando mensajes...</p>
-                                )}
+                                {loading && <p className="m-auto text-xs text-sky-300/60">Cargando...</p>}
                                 {!loading && !messages.length && (
                                     <div className="m-auto rounded-2xl border border-white/10 px-5 py-4 text-center">
                                         <MessageCircle size={24} className="mx-auto mb-2 text-sky-400/50" />
@@ -183,9 +188,7 @@ export function SupportChat({
                                     });
                                     return (
                                         <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[80%] rounded-3xl px-3 py-2 ${isMine
-                                                    ? 'rounded-br-md bg-sky-600 text-white'
-                                                    : 'rounded-bl-md bg-white/10 text-sky-100'
+                                            <div className={`max-w-[80%] rounded-3xl px-3 py-2 ${isMine ? 'rounded-br-md bg-sky-600 text-white' : 'rounded-bl-md bg-white/10 text-sky-100'
                                                 }`}>
                                                 {!isMine && (
                                                     <p className="mb-0.5 text-[10px] font-black uppercase tracking-wide text-sky-400">
@@ -203,7 +206,6 @@ export function SupportChat({
                                 <div ref={bottomRef} />
                             </div>
 
-                            {/* Input */}
                             <form
                                 onSubmit={handleSend}
                                 className="flex shrink-0 items-end gap-2 border-t border-white/10 bg-sky-900/50 px-3 py-3"
@@ -232,7 +234,7 @@ export function SupportChat({
                 </div>
             )}
 
-            {/* Botón flotante abajo derecha */}
+            {/* Botón flotante */}
             <button
                 onClick={() => { setOpen((v) => !v); setMinimized(false); }}
                 className="flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white shadow-2xl shadow-sky-900/50 transition hover:bg-sky-500 active:scale-95"
