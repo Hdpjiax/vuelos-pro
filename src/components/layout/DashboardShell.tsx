@@ -1,4 +1,6 @@
 import { RealtimeNotifications } from "@/components/notifications/RealtimeNotifications";
+import { SupportChat } from "@/components/SupportChat";
+
 import { Sidebar } from "./Sidebar";
 
 type DashboardShellProps = {
@@ -18,6 +20,10 @@ export function DashboardShell({ role, userId, userName, children }: DashboardSh
         </section>
       </div>
       <RealtimeNotifications userId={userId} role={role} userName={userName} />
+      {/* Chat de soporte flotante — solo para usuarios */}
+      {role === "user" && (
+        <SupportChat userId={userId} userName={userName} />
+      )}
     </main>
   );
 }

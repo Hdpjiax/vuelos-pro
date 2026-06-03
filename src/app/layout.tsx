@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { SupportButton } from '@/components/SupportButton';
 
 import "./globals.css";
 

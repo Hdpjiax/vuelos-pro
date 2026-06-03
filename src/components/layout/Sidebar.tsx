@@ -11,6 +11,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { SupportPanel, SupportFloating } from '@/components/SupportButton';
+
 type NavItem = {
   href: string;
   label: string;
@@ -178,6 +180,9 @@ export function Sidebar({ role, userName }: SidebarProps) {
             );
           })}
         </nav>
+        <div className="mt-3">
+          <SupportPanel role={role} onClose={() => setMenuOpen(false)} />
+        </div>
       </div >
 
       {/* ── SIDEBAR DESKTOP ──────────────────────────────────────────────── */}
@@ -187,7 +192,7 @@ export function Sidebar({ role, userName }: SidebarProps) {
         <div className="mb-6 shrink-0">
           <Brand role={role} />
         </div>
-
+          
         {/* Nav items */}
         <nav
           className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -227,7 +232,9 @@ export function Sidebar({ role, userName }: SidebarProps) {
           <LogoutButton />
 
         </div>
+        
       </aside>
+      
     </>
   );
 }
