@@ -14,7 +14,7 @@ const tools = [
 export function ToolsSubNav({ active }: { active: string }) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <div className="flex items-center gap-1.5 rounded-2xl border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-sky-200/70">
+      <div className="flex items-center gap-1.5 rounded-2xl border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-600 dark:border-white/10 dark:bg-white/5 ">
         <Wrench size={13} className="text-sky-500 dark:text-cyan-400" />
         Tools
       </div>
