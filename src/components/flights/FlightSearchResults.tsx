@@ -104,15 +104,6 @@ export function FlightSearchResults({ data, error, searchSummary }: Props) {
 
   return (
     <div className="space-y-4">
-      {isMock && (
-        <div className="flex items-start gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
-          <Info size={18} className="mt-0.5 shrink-0" />
-          <p className="text-sm font-bold">
-            Modo demostración o respaldo activo. Revisa RAPIDAPI_KEY para mostrar cotizaciones reales de Sky Scrapper.
-          </p>
-        </div>
-      )}
-
       {searchSummary && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-sky-50 px-4 py-3">
           <Plane size={15} className="shrink-0 text-sky-600" />
