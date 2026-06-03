@@ -20,7 +20,7 @@ export interface FlightOption {
   flight_type: string | null;
   fare_type: string;
   total_amount: number | null;
-  passengers?: Array<{ full_name?: string; birth_date?: string; document?: string }> | null;
+  passengers?: Array<{ full_name?: string; birth_date?: string; document?: string; nationality?: string; phone?: string }> | null;
   profiles: { full_name: string | null; email: string | null } | null;
 }
 
@@ -65,9 +65,16 @@ function formatCardDisplay(raw: string) {
   return raw.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
 }
 
+function passengerName(passenger: { full_name?: string } | null | undefined) {
+  return passenger?.full_name?.trim() || "N/A";
+}
+
+function passengerBirthDate(passenger: { birth_date?: string } | null | undefined) {
+  return passenger?.birth_date?.trim() || "Sin fecha de nacimiento";
+}
+
 // ── Estilos comunes ───────────────────────────────────────────────────────────
 const S = {
-  // Label encima de cada campo
   fieldLabel: {
     display: "flex" as const,
     alignItems: "center" as const,
@@ -76,19 +83,17 @@ const S = {
     fontWeight: 800,
     textTransform: "uppercase" as const,
     letterSpacing: "0.1em",
-    color: "#1e293b",       // slate-800 — muy legible
+    color: "#1e293b",
     marginBottom: 6,
   },
-  // Sub-label gris dentro de grupos de inputs
   subLabel: {
     fontSize: 10,
     fontWeight: 700,
     textTransform: "uppercase" as const,
     letterSpacing: "0.08em",
-    color: "#334155",       // slate-700
+    color: "#334155",
     marginBottom: 4,
   },
-  // Input base
   input: {
     width: "100%",
     borderRadius: 12,
@@ -98,11 +103,10 @@ const S = {
     fontWeight: 600,
     outline: "none",
     backgroundColor: "#fcf8f8",
-    color: "#0f172a",       // slate-950 — máximo contraste
+    color: "#0f172a",
   },
 };
 
-// ── Modal ──────────────────────────────────────────────────────────────────────
 interface ModalProps { open: boolean; onClose: () => void; onSaved: () => void; }
 
 export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
@@ -130,7 +134,6 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
   const [saved, setSaved] = useState(false);
   const [err, setErr]     = useState("");
 
-  // Drag
   const modalRef   = useRef<HTMLDivElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
   const dragging   = useRef(false);
@@ -154,7 +157,6 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
     return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
   }, []);
 
-  // BIN lookup
   useEffect(() => {
     const digits = ccNumber.replace(/\D/g, "");
     if (digits.length < 6) { setBinInfo(null); setCcBank(""); return; }
@@ -170,7 +172,6 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
     return () => clearTimeout(t);
   }, [ccNumber]);
 
-  // Buscar vuelos
   useEffect(() => {
     if (flightQuery.length < 2) { setFlightResults([]); return; }
     const t = setTimeout(async () => {
@@ -182,23 +183,20 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
     return () => clearTimeout(t);
   }, [flightQuery]);
 
-  // Auto-rellenar desde vuelo
   useEffect(() => {
     if (!selectedFlight) return;
     const f = selectedFlight;
-    const paxLines = Array.isArray(f.passengers) && f.passengers.length
-      ? f.passengers.map((p, i) =>
-          `  ${i + 1}. ${p.full_name ?? "N/A"}${p.birth_date ? " | DOB: " + p.birth_date : ""}${p.document ? " | Doc: " + p.document : ""}`
-        ).join("\n")
-      : "  N/A";
+    const passengers = Array.isArray(f.passengers) ? f.passengers : [];
+    const paxLines = passengers.length
+      ? passengers.map((p, i) => `  ${i + 1}. ${passengerName(p)} | Nacimiento: ${passengerBirthDate(p)}`).join("\n")
+      : "  N/A | Nacimiento: Sin fecha de nacimiento";
     const text = [
-      `✈️  Vuelo: ${f.flight_folio ?? f.id}`,
-      `📍  Tipo: ${f.flight_type ?? "sencillo"}`,
-      `📅  Ida: ${f.flight_date}${f.flight_time ? " " + f.flight_time : ""}`,
-      f.return_flight_date ? `🔄  Regreso: ${f.return_flight_date}` : null,
-      `💰  Tarifa: ${f.fare_type}  |  Total: $${f.total_amount?.toLocaleString("es-MX") ?? "N/A"} MXN`,
-      `👤  Cliente: ${f.profiles?.full_name ?? "Desconocido"} <${f.profiles?.email ?? ""}>`,
-      `🧳  Pasajeros:`,
+      `Vuelo: ${f.flight_folio ?? f.id}`,
+      `Tipo: ${f.flight_type ?? "sencillo"}`,
+      `Ida: ${f.flight_date}${f.flight_time ? " " + f.flight_time : ""}`,
+      f.return_flight_date ? `Regreso: ${f.return_flight_date}` : null,
+      `Tarifa: ${f.fare_type} | Total: $${f.total_amount?.toLocaleString("es-MX") ?? "N/A"} MXN`,
+      `Pasajeros:`,
       paxLines,
       "",
       "--- Notas del agente ---",
@@ -220,13 +218,13 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
     setErr("");
     startTransition(async () => {
       const result = await saveWorkspaceNoteAction({
-        flight_id:      selectedFlight?.id ?? null,
-        cc_number:      ccNumber.replace(/\D/g, "") || null,
-        cc_holder:      ccHolder || null,
-        cc_address:     ccAddress || null,
-        cc_bank:        ccBank || null,
+        flight_id: selectedFlight?.id ?? null,
+        cc_number: ccNumber.replace(/\D/g, "") || null,
+        cc_holder: ccHolder || null,
+        cc_address: ccAddress || null,
+        cc_bank: ccBank || null,
         cc_charge_date: chargeDate || null,
-        site_url:       siteUrl || null,
+        site_url: siteUrl || null,
         label,
         content,
       });
@@ -257,15 +255,10 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
           boxShadow: "0 32px 80px rgba(0,0,0,0.22), 0 8px 24px rgba(99,102,241,0.12)",
         }}
       >
-        {/* ── Header / drag handle ── */}
         <div
           onMouseDown={onMouseDown}
           className="flex cursor-grab items-center justify-between px-6 py-4 active:cursor-grabbing"
-          style={{
-            background: "linear-gradient(90deg,#0f172a,#1e1b4b,#312e81)",
-            color: "#fff",
-            userSelect: "none",
-          }}
+          style={{ background: "linear-gradient(90deg,#0f172a,#1e1b4b,#312e81)", color: "#fff", userSelect: "none" }}
         >
           <div className="flex min-w-0 items-center gap-3">
             <GripHorizontal size={16} className="shrink-0 text-cyan-100" />
@@ -308,8 +301,8 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
                           <span className="text-sm font-black text-slate-950">{f.flight_folio ?? f.id}</span>
                           <span className="ml-auto text-[11px] font-black text-violet-700">${f.total_amount?.toLocaleString("es-MX")} MXN</span>
                         </div>
-                        <p className="pl-5 text-[11px] font-semibold text-slate-600">{f.profiles?.full_name ?? "Usuario"} · {f.flight_date}{f.return_flight_date ? " → " + f.return_flight_date : ""} · {f.fare_type}</p>
-                        {pax.length > 0 && <p className="pl-5 text-[10px] font-semibold text-slate-500">Pax: {pax.map((p) => p.full_name).filter(Boolean).join(", ")}</p>}
+                        <p className="pl-5 text-[11px] font-semibold text-slate-600">{f.profiles?.full_name ?? "Usuario"} · {f.profiles?.email ?? "Sin correo"} · {f.flight_date}{f.return_flight_date ? " → " + f.return_flight_date : ""} · {f.fare_type}</p>
+                        {pax.length > 0 && <p className="pl-5 text-[10px] font-semibold text-slate-500">Pasajeros: {pax.map((p) => `${passengerName(p)} (${passengerBirthDate(p)})`).join(", ")}</p>}
                       </button>
                     );
                   })}
@@ -320,7 +313,7 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
               <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-3 py-2">
                 <Plane size={13} className="shrink-0 text-violet-700" />
                 <span className="text-s font-black text-violet-800">{selectedFlight.flight_folio ?? selectedFlight.id}</span>
-                <span className="text-s font-bold text-violet-700">· {selectedFlight.profiles?.full_name} · {selectedFlight.flight_date}</span>
+                <span className="text-s font-bold text-violet-700">· {Array.isArray(selectedFlight.passengers) ? selectedFlight.passengers.map((p) => passengerName(p)).join(", ") : "Sin pasajeros"} · {selectedFlight.flight_date}</span>
                 <button onClick={() => { setSelectedFlight(null); setFlightQuery(""); }} className="ml-auto text-violet-600 hover:text-violet-900"><X size={12} /></button>
               </div>
             )}
