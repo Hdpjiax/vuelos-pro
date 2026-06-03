@@ -19,7 +19,6 @@
   body:has(aside.fixed.inset-y-0.left-0) .dashboard-content {
     width: calc(100vw - var(--vp-sidebar));
     max-width: calc(100vw - var(--vp-sidebar));
-    margin-left: 0 !important;
     padding-left: clamp(1.4rem, 1.45vw, 2.35rem) !important;
     padding-right: clamp(1.4rem, 1.45vw, 2.35rem) !important;
   }
