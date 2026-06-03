@@ -27,6 +27,8 @@ export default function AdminCotizarPage() {
         infants: String(params.infants),
         travelClass: params.travelClass,
         nonStop: String(params.nonStop),
+        ...(params.originEntityId ? { originEntityId: params.originEntityId } : {}),
+        ...(params.destinationEntityId ? { destinationEntityId: params.destinationEntityId } : {}),
         ...(params.returnDate ? { returnDate: params.returnDate } : {}),
       });
 
