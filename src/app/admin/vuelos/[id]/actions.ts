@@ -335,6 +335,64 @@ export async function uploadQrAction(formData: FormData) {
   redirect(`/admin/vuelos/${flightId}`);
 }
 
+export async function uploadInternalFilesAction(formData: FormData) {
+  const supabase = await createClient();
+  const flightId = cleanText(formData.get("flight_id"));
+
+  if (!flightId) redirect("/admin/vuelos");
+
+  const admin = await getCurrentAdmin(supabase);
+  if (!admin) redirect("/login");
+
+  const flight = await getFlight(supabase, flightId);
+  if (!flight) redirect("/admin/vuelos");
+
+  const files = formData
+    .getAll("internal_files")
+    .filter((file): file is File => file instanceof File && file.size > 0);
+
+  if (!files.length) redirect(`/admin/vuelos/${flightId}`);
+
+  const uploaded: { name: string; path: string; size: number; type: string }[] = [];
+
+  for (const file of files) {
+    const isAllowed = file.type.startsWith("image/") || file.type === "application/pdf";
+    if (!isAllowed || file.size > 12 * 1024 * 1024) continue;
+
+    const path = `${flight.user_id}/flights/${flightId}/internos/${crypto.randomUUID()}-${slugFileName(file.name)}`;
+    const { error: uploadError } = await supabase.storage.from("flight-files").upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
+
+    if (uploadError) continue;
+
+    await supabase.from("flight_attachments").insert({
+      flight_id: flightId,
+      uploaded_by: admin.id,
+      file_path: path,
+      file_name: file.name,
+      file_type: file.type,
+      category: "interno",
+    });
+
+    uploaded.push({ name: file.name, path, size: file.size, type: file.type });
+  }
+
+  if (uploaded.length) {
+    await logFlightAction(supabase, {
+      user_id: admin.id,
+      action: "internal_files_uploaded",
+      flight_id: flightId,
+      metadata: { files: uploaded.map((file) => ({ name: file.name, size: file.size, type: file.type })) },
+    });
+  }
+
+  revalidateFlight(flightId);
+  redirect(`/admin/vuelos/${flightId}`);
+}
+
 export async function addInternalNoteAction(formData: FormData) {
   const supabase = await createClient();
   const flightId = cleanText(formData.get("flight_id"));
