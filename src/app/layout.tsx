@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import "./globals.css";
+import "./visual-tuning.css";
 
 export const metadata: Metadata = {
   title: "VuelosPro",
