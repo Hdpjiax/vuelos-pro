@@ -264,45 +264,78 @@ export async function uploadQrAction(formData: FormData) {
   const flight = await getFlight(supabase, flightId);
   if (!flight) redirect("/admin/vuelos");
 
-  const qrFile = formData.get("qr_file");
-  if (!(qrFile instanceof File) || qrFile.size === 0) redirect(`/admin/vuelos/${flightId}`);
+  const files = [...formData.getAll("qr_files"), ...formData.getAll("qr_file")]
+    .filter((file): file is File => file instanceof File && file.size > 0);
 
-  const path = `${flight.user_id}/${flightId}/qr-${Date.now()}-${slugFileName(qrFile.name)}`;
-  const { error: uploadError } = await supabase.storage.from("flight-files").upload(path, qrFile, { upsert: true });
-  if (uploadError) redirect(`/admin/vuelos/${flightId}`);
+  if (!files.length) redirect(`/admin/vuelos/${flightId}`);
 
-  await supabase.from("flight_files").insert({
-    flight_id: flightId,
-    user_id: flight.user_id,
-    file_type: "qr",
-    file_path: path,
-    original_name: qrFile.name,
-    mime_type: qrFile.type,
-    size_bytes: qrFile.size,
-  });
+  const uploaded: { name: string; path: string; size: number; type: string }[] = [];
+
+  for (const file of files) {
+    const isAllowed = file.type.startsWith("image/") || file.type === "application/pdf";
+    if (!isAllowed || file.size > 12 * 1024 * 1024) continue;
+
+    const path = `${flight.user_id}/flights/${flightId}/qr/${crypto.randomUUID()}-${slugFileName(file.name)}`;
+    const { error: uploadError } = await supabase.storage.from("flight-files").upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
+
+    if (uploadError) continue;
+
+    await supabase.from("flight_attachments").insert({
+      flight_id: flightId,
+      uploaded_by: admin.id,
+      file_path: path,
+      file_name: file.name,
+      file_type: file.type,
+      category: "qr",
+    });
+
+    await supabase.from("flight_files").insert({
+      flight_id: flightId,
+      user_id: flight.user_id,
+      file_type: "qr",
+      file_path: path,
+      original_name: file.name,
+      mime_type: file.type,
+      size_bytes: file.size,
+    });
+
+    uploaded.push({ name: file.name, path, size: file.size, type: file.type });
+  }
+
+  if (!uploaded.length) redirect(`/admin/vuelos/${flightId}`);
 
   await supabase.from("flights").update({ status: "qr_enviado" }).eq("id", flightId);
+
+  const message = uploaded.length === 1
+    ? "QR enviado. Ya puedes abrirlo o descargarlo desde el detalle de tu vuelo."
+    : `QR enviados. Se adjuntaron ${uploaded.length} archivos. Ya puedes abrirlos o descargarlos desde el detalle de tu vuelo.`;
 
   await supabase.from("flight_messages").insert({
     flight_id: flightId,
     sender_id: admin.id,
     receiver_id: flight.user_id,
-    message: "QR enviado. Ya puedes descargarlo desde el detalle de tu vuelo.",
+    message,
     message_type: "qr_enviado",
   });
 
   await notifyUser(supabase, {
     user_id: flight.user_id,
     flight_id: flightId,
-    title: "QR enviado",
-    body: "Tus QR ya estan disponibles en el detalle del vuelo.",
+    title: uploaded.length === 1 ? "QR enviado" : "QR enviados",
+    body: uploaded.length === 1
+      ? "Tu QR ya esta disponible en el detalle del vuelo."
+      : `Tus ${uploaded.length} archivos QR ya estan disponibles en el detalle del vuelo.`,
   });
 
   await logFlightAction(supabase, {
     user_id: admin.id,
     action: "qr_uploaded",
     flight_id: flightId,
-    metadata: { file_path: path },
+    metadata: { files: uploaded.map((file) => ({ name: file.name, size: file.size, type: file.type })) },
   });
 
   revalidateFlight(flightId);
