@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasAmadeusCredentials, searchAirports, searchFlightOffers } from "@/lib/amadeus";
 import { mockSearchFlights, mockSearchAirports } from "@/lib/flights-mock";
+import { hasSkyScrapperCredentials, searchSkyScrapperAirports, searchSkyScrapperFlights } from "@/lib/sky-scrapper";
 
 export const dynamic = "force-dynamic";
 
 type ApiError = {
-  message: string;
+  error: string;
 };
 
 function parsePositiveNumber(value: string | null, fallback: number) {
@@ -14,7 +14,7 @@ function parsePositiveNumber(value: string | null, fallback: number) {
 }
 
 function shouldUseMock() {
-  return process.env.FLIGHT_SEARCH_USE_MOCK === "true" || !hasAmadeusCredentials();
+  return process.env.FLIGHT_SEARCH_USE_MOCK === "true" || !hasSkyScrapperCredentials();
 }
 
 function errorResponse(error: unknown, status = 500) {
@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
     if (keyword.trim().length < 2) return NextResponse.json({ data: [] });
 
     try {
-      const data = useMock ? mockSearchAirports(keyword) : await searchAirports(keyword);
-      return NextResponse.json({ ...data, meta: { source: useMock ? "mock" : "amadeus" } });
+      const data = useMock ? mockSearchAirports(keyword) : await searchSkyScrapperAirports(keyword);
+      return NextResponse.json({ ...data, meta: { source: useMock ? "mock" : "sky-scrapper" } });
     } catch (error) {
       return errorResponse(error);
     }
@@ -41,6 +41,8 @@ export async function GET(req: NextRequest) {
 
   const origin = searchParams.get("origin")?.trim().toUpperCase();
   const destination = searchParams.get("destination")?.trim().toUpperCase();
+  const originEntityId = searchParams.get("originEntityId")?.trim() || undefined;
+  const destinationEntityId = searchParams.get("destinationEntityId")?.trim() || undefined;
   const departureDate = searchParams.get("departureDate")?.trim();
   const returnDate = searchParams.get("returnDate")?.trim() || undefined;
   const adults = parsePositiveNumber(searchParams.get("adults"), 1);
@@ -60,9 +62,11 @@ export async function GET(req: NextRequest) {
   try {
     const data = useMock
       ? mockSearchFlights({ origin, destination, departureDate, returnDate, adults })
-      : await searchFlightOffers({
-          origin,
-          destination,
+      : await searchSkyScrapperFlights({
+          originSkyId: origin,
+          destinationSkyId: destination,
+          originEntityId,
+          destinationEntityId,
           departureDate,
           returnDate,
           adults,
@@ -70,15 +74,14 @@ export async function GET(req: NextRequest) {
           infants,
           travelClass,
           nonStop,
-          currencyCode: "MXN",
-          max: 20,
+          currency: "MXN",
         });
 
     return NextResponse.json({
       ...data,
       meta: {
-        source: useMock ? "mock" : "amadeus",
-        environment: process.env.AMADEUS_ENVIRONMENT === "production" ? "production" : "test",
+        source: useMock ? "mock" : "sky-scrapper",
+        currency: "MXN",
       },
     });
   } catch (error) {
