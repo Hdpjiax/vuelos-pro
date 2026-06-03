@@ -2,10 +2,12 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { Plus, Trash2, UploadCloud } from "lucide-react";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import { buttonPrimary, buttonSecondarySmall, inputClass, labelClass } from "@/lib/styles";
 import { createFlightAction, type FlightFormState } from "./actions";
 
 const initialState: FlightFormState = {};
+const MAX_PASSENGERS = 9;
 
 type PassengerDraft = {
   id: string;
@@ -14,6 +16,7 @@ type PassengerDraft = {
 export function NewFlightForm() {
   const [state, formAction, pending] = useActionState(createFlightAction, initialState);
   const [flightType, setFlightType] = useState("sencillo");
+  const [fareType, setFareType] = useState("");
   const [passengers, setPassengers] = useState<PassengerDraft[]>([{ id: crypto.randomUUID() }]);
   const [checkedBags, setCheckedBags] = useState("0");
   const [carryOnBags, setCarryOnBags] = useState("0");
@@ -33,7 +36,10 @@ export function NewFlightForm() {
   }, [checkedBags, carryOnBags, seats]);
 
   function addPassenger() {
-    setPassengers((current) => [...current, { id: crypto.randomUUID() }]);
+    setPassengers((current) => {
+      if (current.length >= MAX_PASSENGERS) return current;
+      return [...current, { id: crypto.randomUUID() }];
+    });
   }
 
   function removePassenger(id: string) {
@@ -58,13 +64,17 @@ export function NewFlightForm() {
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <label className="space-y-2">
-            <span className={labelClass}>Tipo de viaje</span>
-            <select className={inputClass} name="flight_type" value={flightType} onChange={(event) => setFlightType(event.target.value)} required>
-              <option value="sencillo">Sencillo</option>
-              <option value="redondo">Redondo</option>
-            </select>
-          </label>
+          <CustomSelect
+            label="Tipo de viaje"
+            name="flight_type"
+            value={flightType}
+            onChange={setFlightType}
+            required
+            options={[
+              { value: "sencillo", label: "Sencillo" },
+              { value: "redondo", label: "Redondo" },
+            ]}
+          />
 
           <label className="space-y-2">
             <span className={labelClass}>Fecha de ida</span>
@@ -76,17 +86,21 @@ export function NewFlightForm() {
             <input className={inputClass} type="time" name="flight_time" required />
           </label>
 
-          <label className="space-y-2">
-            <span className={labelClass}>Tipo de tarifa</span>
-            <select className={inputClass} name="fare_type" required defaultValue="">
-              <option value="" disabled>Selecciona una tarifa</option>
-              <option value="Basica">Básica</option>
-              <option value="Clasica">Clásica</option>
-              <option value="Flexible">Flexible</option>
-              <option value="Premium">Premium</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </label>
+          <CustomSelect
+            label="Tipo de tarifa"
+            name="fare_type"
+            value={fareType}
+            onChange={setFareType}
+            required
+            placeholder="Selecciona una tarifa"
+            options={[
+              { value: "Basica", label: "Básica" },
+              { value: "Clasica", label: "Clásica" },
+              { value: "Flexible", label: "Flexible" },
+              { value: "Premium", label: "Premium" },
+              { value: "Otro", label: "Otro" },
+            ]}
+          />
 
           {flightType === "redondo" ? (
             <>
@@ -120,15 +134,18 @@ export function NewFlightForm() {
             <p className="text-sm font-black uppercase tracking-[0.24em] text-sky-700">Pasajeros</p>
             <h3 className="mt-1 text-2xl font-black tracking-tight text-slate-950">Datos de pasajeros</h3>
             <p className="mt-1 text-sm text-slate-500">Incluye nombre, documento, fecha de nacimiento y nacionalidad.</p>
+            <p className="mt-3 inline-flex rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-black text-sky-800">
+              Pasajeros: {passengers.length}/{MAX_PASSENGERS}
+            </p>
           </div>
-          <button type="button" onClick={addPassenger} className={buttonPrimary}>
-            <Plus size={16} /> Agregar pasajero
+          <button type="button" onClick={addPassenger} disabled={passengers.length >= MAX_PASSENGERS} className={buttonPrimary}>
+            <Plus size={16} /> {passengers.length >= MAX_PASSENGERS ? "Máximo alcanzado" : "Agregar pasajero"}
           </button>
         </div>
 
         <div className="space-y-4">
           {passengers.map((passenger, index) => (
-            <div key={passenger.id} className="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
+            <div key={passenger.id} className="new-flight-passenger-card rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <p className="font-black text-slate-900">Pasajero {index + 1}</p>
                 <button
