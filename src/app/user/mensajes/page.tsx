@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { createClient } from "@/lib/supabase/server";
 import { buttonPrimarySmall } from "@/lib/styles";
 import { formatDate, formatDateTime } from "@/lib/utils";
-
+import { OpenSupportChatButton } from "@/components/ui/OpenSupportChatButton";
 type FlightMessageGroup = {
   flightId: string;
   flight: any;
@@ -98,16 +98,8 @@ export default async function UserMessagesPage() {
             </div>
           </div>
           {/* Botón nueva conversación — abre el chat flotante */}
-          <button
-            onClick={() => {
-              // dispara el botón del chat flotante usando un evento custom
-              window.dispatchEvent(new CustomEvent('open-support-chat'));
-            }}
-            className="flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white shadow transition hover:bg-sky-700 active:scale-95"
-          >
-            <Plus size={15} />
-            Nueva conversación
-          </button>
+          <OpenSupportChatButton />
+
         </div>
 
         {!supportMessages?.length ? (
@@ -123,8 +115,8 @@ export default async function UserMessagesPage() {
               return (
                 <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] rounded-3xl px-4 py-3 ${isMine
-                      ? 'bg-sky-600 text-white rounded-br-md'
-                      : 'border border-slate-200 bg-white text-slate-900 rounded-bl-md'
+                    ? 'bg-sky-600 text-white rounded-br-md'
+                    : 'border border-slate-200 bg-white text-slate-900 rounded-bl-md'
                     }`}>
                     {!isMine && (
                       <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-sky-700">
