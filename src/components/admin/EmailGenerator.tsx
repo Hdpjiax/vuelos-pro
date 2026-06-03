@@ -27,13 +27,10 @@ function generateEmails(input: string): string[] {
   const clean = input
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .toLowerCase().trim();
-
   const parts = clean.split(/\s+/).filter(Boolean);
   if (parts.length === 0) return [];
-
   const [first = "", last = ""] = parts;
   const patterns: string[] = [];
-
   if (first && last) {
     patterns.push(`${first}.${last}`);
     patterns.push(`${first}${last}`);
@@ -48,7 +45,6 @@ function generateEmails(input: string): string[] {
     patterns.push(`${first}1`);
     patterns.push(`${first}2024`);
   }
-
   const results: string[] = [];
   for (const { domain } of EMAIL_DOMAINS) {
     for (const pattern of patterns) {
@@ -95,99 +91,145 @@ export function EmailGenerator() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
+      {/* ── Header ── */}
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-violet-500 text-white shadow-lg shadow-sky-200/60 dark:shadow-cyan-950/30">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-violet-600 text-white shadow-lg">
           <Mail size={22} />
         </div>
         <div>
           <h2 className="text-xl font-black text-slate-900 dark:text-white">Mail Generator</h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Genera combinaciones de correos a partir de un nombre</p>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+            Genera combinaciones de correos a partir de un nombre
+          </p>
         </div>
       </div>
 
-      {/* Input */}
-      <div className="rounded-3xl border border-slate-300 bg-white p-5 shadow-md dark:border-white/10 dark:bg-white/5">
-        <label className="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200">
+      {/* ── Input card ── */}
+      <div
+        className="rounded-3xl border-2 border-slate-300 p-5 shadow-md dark:border-white/10 dark:bg-slate-800"
+        style={{ backgroundColor: "#ffffff" }}
+      >
+        {/* Label */}
+        <label
+          htmlFor="email-gen-input"
+          className="mb-2 block text-sm font-bold dark:text-slate-200"
+          style={{ color: "#1e293b" }}
+        >
           Nombre completo
         </label>
+
         <div className="flex gap-3">
+          {/* Input */}
           <input
+            id="email-gen-input"
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
             placeholder="Ej: Juan García"
-            className="flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-cyan-400 dark:focus:ring-cyan-400/20"
+            className="flex-1 rounded-2xl border-2 px-4 py-3 text-sm font-semibold shadow-sm outline-none focus:ring-2 focus:ring-sky-300 dark:border-white/10 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-cyan-400"
+            style={{
+              backgroundColor: "#f1f5f9",
+              color: "#0f172a",
+              borderColor: "#94a3b8",
+            }}
           />
+
+          {/* Boton generar */}
           <button
             onClick={handleGenerate}
-            className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-200/60 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-sky-300/50 dark:shadow-cyan-950/30"
+            className="flex shrink-0 items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-sm font-black text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
           >
             <Sparkles size={16} />
             Generar
           </button>
+
+          {/* Boton limpiar */}
           {generated && (
             <button
               onClick={handleClear}
-              className="flex items-center gap-2 rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600 transition-all hover:bg-rose-500 hover:text-white dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-300"
+              className="flex shrink-0 items-center justify-center rounded-2xl border-2 border-rose-300 bg-rose-50 px-4 py-3 text-rose-600 transition-all hover:bg-rose-500 hover:text-white dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-300"
             >
               <Trash2 size={16} />
             </button>
           )}
         </div>
+
         {generated && (
-          <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-500">
+          <p
+            className="mt-2 text-xs font-semibold dark:text-slate-400"
+            style={{ color: "#475569" }}
+          >
             {emails.length} correos generados en {EMAIL_DOMAINS.length} dominios
           </p>
         )}
       </div>
 
-      {/* Resultados agrupados por dominio */}
+      {/* ── Resultados por dominio ── */}
       {grouped.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {grouped.map(({ domain, label, color, verifyUrl, emails: domainEmails }) => (
             <div
               key={domain}
-              className="rounded-3xl border border-slate-300 bg-white p-4 shadow-md dark:border-white/10 dark:bg-white/[0.04]"
+              className="rounded-3xl border-2 border-slate-200 p-4 shadow-md dark:border-white/10 dark:bg-slate-800"
+              style={{ backgroundColor: "#ffffff" }}
             >
+              {/* Domain header */}
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className={cn("h-2.5 w-2.5 rounded-full bg-gradient-to-br", color)} />
-                  <span className="text-sm font-black text-slate-800 dark:text-white">{label}</span>
-                  <span className="text-xs font-semibold text-slate-500">@{domain}</span>
+                  <div className={cn("h-2.5 w-2.5 shrink-0 rounded-full bg-gradient-to-br", color)} />
+                  <span
+                    className="text-sm font-black dark:text-white"
+                    style={{ color: "#1e293b" }}
+                  >
+                    {label}
+                  </span>
+                  <span
+                    className="text-xs font-semibold dark:text-slate-400"
+                    style={{ color: "#64748b" }}
+                  >
+                    @{domain}
+                  </span>
                 </div>
                 <button
                   onClick={() => window.open(verifyUrl, "_blank")}
                   title={`Verificar en ${label}`}
-                  className="flex items-center gap-1 rounded-xl border border-slate-300 bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600 transition-all hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-300"
+                  className="flex items-center gap-1 rounded-xl border border-slate-300 bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700 transition-all hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
                 >
                   <Search size={11} />
                   Verificar
                 </button>
               </div>
 
+              {/* Email rows */}
               <div className="space-y-1.5">
                 {domainEmails.map((email) => (
                   <div
                     key={email}
-                    className="group flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/5 dark:bg-white/[0.03]"
+                    className="group flex items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2 dark:border-white/5 dark:bg-slate-700"
+                    style={{ backgroundColor: "#f1f5f9" }}
                   >
-                    <span className="truncate text-[12px] font-semibold text-slate-700 dark:text-slate-300">
+                    <span
+                      className="truncate text-[12px] font-semibold dark:text-slate-200"
+                      style={{ color: "#1e293b" }}
+                    >
                       {email}
                     </span>
                     <div className="flex shrink-0 items-center gap-1">
                       <button
                         onClick={() => handleCopy(email)}
                         title="Copiar"
-                        className="rounded-lg p-1 text-slate-500 transition-all hover:bg-sky-100 hover:text-sky-600 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-300"
+                        className="rounded-lg p-1 text-slate-500 transition-all hover:bg-sky-100 hover:text-sky-600 dark:text-slate-400 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-300"
                       >
-                        {copied === email ? <CheckCheck size={13} className="text-green-500" /> : <Copy size={13} />}
+                        {copied === email
+                          ? <CheckCheck size={13} className="text-green-600" />
+                          : <Copy size={13} />}
                       </button>
                       <button
                         onClick={() => handleVerify(email)}
                         title="Ir al proveedor"
-                        className="rounded-lg p-1 text-slate-500 transition-all hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-400/10 dark:hover:text-violet-300"
+                        className="rounded-lg p-1 text-slate-500 transition-all hover:bg-violet-100 hover:text-violet-600 dark:text-slate-400 dark:hover:bg-violet-400/10 dark:hover:text-violet-300"
                       >
                         <Search size={13} />
                       </button>
@@ -200,14 +242,24 @@ export function EmailGenerator() {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* ── Empty state ── */}
       {!generated && (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-300 bg-slate-50 py-16 text-center dark:border-white/10 dark:bg-white/[0.02]">
-          <Mail size={36} className="text-slate-400 dark:text-slate-600" />
-          <p className="text-sm font-bold text-slate-600 dark:text-slate-500">
-            Escribe un nombre y presiona <span className="text-sky-500">Generar</span>
+        <div
+          className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-slate-300 py-16 text-center dark:border-white/10 dark:bg-slate-800/50"
+          style={{ backgroundColor: "#f8fafc" }}
+        >
+          <Mail size={36} className="text-slate-400" />
+          <p
+            className="text-sm font-bold dark:text-slate-400"
+            style={{ color: "#475569" }}
+          >
+            Escribe un nombre y presiona{" "}
+            <span className="text-sky-600 dark:text-sky-400">Generar</span>
           </p>
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-600">
+          <p
+            className="text-xs font-semibold dark:text-slate-500"
+            style={{ color: "#64748b" }}
+          >
             Genera combinaciones para {EMAIL_DOMAINS.length} dominios populares
           </p>
         </div>
