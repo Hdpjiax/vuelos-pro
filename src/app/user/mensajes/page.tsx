@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { MessageSquare, Plane, Plus, Headphones } from "lucide-react";
+import { MessageSquare, Plane, Headphones } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { createClient } from "@/lib/supabase/server";
 import { buttonPrimarySmall } from "@/lib/styles";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { OpenSupportChatButton } from "@/components/ui/OpenSupportChatButton";
 type FlightMessageGroup = {
   flightId: string;
   flight: any;
@@ -89,17 +88,12 @@ export default async function UserMessagesPage() {
 
       {/* ── SOPORTE GENERAL ── */}
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
-        <div className="mb-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-sky-50 p-2.5 text-sky-700"><Headphones size={18} /></div>
-            <div>
-              <h3 className="text-lg font-black text-slate-950">Soporte general</h3>
-              <p className="text-xs text-slate-400">Conversa con soporte sin necesidad de un vuelo</p>
-            </div>
+        <div className="mb-5 flex items-center gap-3">
+          <div className="rounded-2xl bg-sky-50 p-2.5 text-sky-700"><Headphones size={18} /></div>
+          <div>
+            <h3 className="text-lg font-black text-slate-950">Soporte general</h3>
+            <p className="text-xs text-slate-400">Conversa con soporte sin necesidad de un vuelo</p>
           </div>
-          {/* Botón nueva conversación — abre el chat flotante */}
-          <OpenSupportChatButton />
-
         </div>
 
         {!supportMessages?.length ? (
