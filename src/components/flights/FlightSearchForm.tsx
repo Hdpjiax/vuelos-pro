@@ -30,6 +30,8 @@ export type FlightSearchParams = {
 
 type Props = { onSearch: (p: FlightSearchParams) => void; loading: boolean };
 
+type AirportValue = { code: string; entityId?: string; label: string };
+
 function airportLabel(a: Airport) {
   const city = a.address?.cityName || a.detailedName || a.name;
   return `${a.skyId || a.iataCode} — ${city}`;
@@ -37,8 +39,8 @@ function airportLabel(a: Airport) {
 
 function AirportInput({ label, value, onChange }: {
   label: string;
-  value: { code: string; entityId?: string; label: string };
-  onChange: (v: { code: string; entityId?: string; label: string }) => void;
+  value: AirportValue;
+  onChange: (v: AirportValue) => void;
 }) {
   const [query, setQuery] = useState(value.label);
   const [results, setResults] = useState<Airport[]>([]);
@@ -114,8 +116,8 @@ function AirportInput({ label, value, onChange }: {
 }
 
 export function FlightSearchForm({ onSearch, loading }: Props) {
-  const [origin, setOrigin] = useState({ code: "", entityId: undefined as string | undefined, label: "" });
-  const [destination, setDestination] = useState({ code: "", entityId: undefined as string | undefined, label: "" });
+  const [origin, setOrigin] = useState<AirportValue>({ code: "", label: "" });
+  const [destination, setDestination] = useState<AirportValue>({ code: "", label: "" });
   const [departureDate, setDepartureDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [adults, setAdults] = useState(1);
