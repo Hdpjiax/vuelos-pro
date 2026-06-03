@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f8fc;
-  --foreground: #0f172a;
+  --background: #eef7fb;
+  --foreground: #07111f;
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
   --accent: #06b6d4;
   --accent-soft: #dff8ff;
   --muted: #64748b;
-  --card: rgba(255, 255, 255, 0.88);
-  --card-solid: #ffffff;
-  --border: rgba(148, 163, 184, 0.24);
-  --nav-bg: rgba(255, 255, 255, 0.78);
-  --nav-border: rgba(125, 151, 181, 0.24);
+  --card: rgba(255, 255, 255, 0.66);
+  --card-solid: rgba(255, 255, 255, 0.72);
+  --border: rgba(125, 151, 181, 0.22);
+  --nav-bg: rgba(255, 255, 255, 0.56);
+  --nav-border: rgba(125, 151, 181, 0.22);
   --nav-text: #334155;
   --nav-text-strong: #0f172a;
   --nav-active: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
-  --glow-a: rgba(56, 189, 248, 0.20);
-  --glow-b: rgba(129, 140, 248, 0.16);
-  --glow-c: rgba(45, 212, 191, 0.14);
+  --glow-a: rgba(56, 189, 248, 0.24);
+  --glow-b: rgba(99, 102, 241, 0.18);
+  --glow-c: rgba(45, 212, 191, 0.18);
 }
 
 html.dark {
@@ -29,28 +29,23 @@ html.dark {
   --accent: #22d3ee;
   --accent-soft: rgba(34, 211, 238, 0.12);
   --muted: #94a3b8;
-  --card: rgba(9, 14, 27, 0.82);
-  --card-solid: #0b1220;
+  --card: rgba(9, 14, 27, 0.76);
+  --card-solid: rgba(11, 18, 32, 0.82);
   --border: rgba(148, 163, 184, 0.18);
-  --nav-bg: rgba(8, 13, 25, 0.82);
+  --nav-bg: rgba(8, 13, 25, 0.78);
   --nav-border: rgba(125, 151, 181, 0.16);
   --nav-text: #cbd5e1;
   --nav-text-strong: #f8fafc;
   --nav-active: linear-gradient(135deg, #06b6d4 0%, #7c3aed 52%, #f43f5e 100%);
-  --glow-a: rgba(6, 182, 212, 0.22);
-  --glow-b: rgba(124, 58, 237, 0.18);
-  --glow-c: rgba(244, 63, 94, 0.12);
+  --glow-a: rgba(6, 182, 212, 0.24);
+  --glow-b: rgba(124, 58, 237, 0.20);
+  --glow-c: rgba(244, 63, 94, 0.13);
   color-scheme: dark;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-body.modal-open {
-  overflow: hidden;
-  touch-action: none;
-}
+body.modal-open { overflow: hidden; touch-action: none; }
 
 html,
 body {
@@ -67,6 +62,15 @@ html {
   text-size-adjust: 100%;
   touch-action: pan-y;
   scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+@media (min-width: 1536px) {
+  html { font-size: 17px; }
+}
+
+@media (min-width: 1920px) {
+  html { font-size: 18px; }
 }
 
 body {
@@ -80,21 +84,14 @@ body {
   transition: background-color 240ms ease, color 240ms ease;
 }
 
-body::selection {
-  background: rgba(56, 189, 248, 0.28);
-}
+body::selection { background: rgba(56, 189, 248, 0.28); }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+a { color: inherit; text-decoration: none; }
 
 button,
 input,
 select,
-textarea {
-  font: inherit;
-}
+textarea { font: inherit; }
 
 button,
 a,
@@ -106,34 +103,24 @@ a,
 
 button:hover,
 a:hover,
-[role="button"]:hover {
-  transform: translateY(-1px);
-}
+[role="button"]:hover { transform: translateY(-1px); }
 
 button:active,
 a:active,
-[role="button"]:active {
-  transform: translateY(0) scale(0.985);
-}
+[role="button"]:active { transform: translateY(0) scale(0.985); }
 
 input,
 select,
-textarea {
-  transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease, color 220ms ease;
-}
+textarea { transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease, color 220ms ease; }
 
 input:focus,
 select:focus,
-textarea:focus {
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.13);
-}
+textarea:focus { box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.13); }
 
 img,
 svg,
 video,
-canvas {
-  max-width: 100%;
-}
+canvas { max-width: 100%; }
 
 /* ─── Fondos minimalistas ─────────────────────────────────────────────────── */
 
@@ -142,10 +129,10 @@ canvas {
   position: relative;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 13% 9%, var(--glow-a) 0, transparent 28rem),
-    radial-gradient(circle at 82% 4%, var(--glow-b) 0, transparent 30rem),
-    radial-gradient(circle at 72% 88%, var(--glow-c) 0, transparent 28rem),
-    linear-gradient(145deg, #f8fbff 0%, #eef6ff 48%, #ffffff 100%);
+    radial-gradient(circle at 9% 7%, var(--glow-a) 0, transparent 32rem),
+    radial-gradient(circle at 92% 4%, var(--glow-b) 0, transparent 36rem),
+    radial-gradient(circle at 75% 88%, var(--glow-c) 0, transparent 36rem),
+    linear-gradient(145deg, #eaf7ff 0%, #eef8ff 34%, #f9fbff 68%, #e8fbf8 100%);
 }
 
 .dashboard-bg::before,
@@ -156,32 +143,33 @@ canvas {
   pointer-events: none;
   background-image:
     linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: linear-gradient(to bottom, black, transparent 82%);
-  opacity: 0.45;
+    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 40px 40px, rgba(14, 165, 233, 0.08) 1px, transparent 1.5px);
+  background-size: 44px 44px, 44px 44px, 88px 88px;
+  mask-image: linear-gradient(to bottom, black, transparent 86%);
+  opacity: 0.62;
 }
 
 .dashboard-bg::after,
 .admin-bg::after {
   content: "";
   position: fixed;
-  inset: auto 6% 5% auto;
-  width: min(28rem, 58vw);
+  inset: auto 4% 3% auto;
+  width: min(36rem, 60vw);
   aspect-ratio: 1;
   pointer-events: none;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.14), transparent 68%);
-  filter: blur(8px);
-  opacity: 0.75;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.18), rgba(45, 212, 191, 0.10), transparent 70%);
+  filter: blur(10px);
+  opacity: 0.82;
 }
 
 html.dark .dashboard-bg,
 html.dark .admin-bg {
   background:
-    radial-gradient(circle at 14% 8%, rgba(6, 182, 212, 0.20) 0, transparent 26rem),
-    radial-gradient(circle at 88% 8%, rgba(124, 58, 237, 0.20) 0, transparent 32rem),
-    radial-gradient(circle at 74% 90%, rgba(244, 63, 94, 0.11) 0, transparent 30rem),
+    radial-gradient(circle at 14% 8%, rgba(6, 182, 212, 0.22) 0, transparent 28rem),
+    radial-gradient(circle at 88% 8%, rgba(124, 58, 237, 0.22) 0, transparent 34rem),
+    radial-gradient(circle at 74% 90%, rgba(244, 63, 94, 0.12) 0, transparent 32rem),
     linear-gradient(145deg, #03050a 0%, #07111f 48%, #05070d 100%);
 }
 
@@ -189,46 +177,88 @@ html.dark .dashboard-bg::before,
 html.dark .admin-bg::before {
   background-image:
     linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
-  opacity: 0.55;
+    linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 40px 40px, rgba(34, 211, 238, 0.10) 1px, transparent 1.5px);
+  opacity: 0.58;
+}
+
+.dashboard-content {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-content > * {
+  animation: dashboard-enter 360ms ease both;
+}
+
+@keyframes dashboard-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ─── Superficies globales y dark mode para componentes existentes ────────── */
 
 :where(.rounded-\[2rem\], .rounded-3xl, .rounded-2xl) {
-  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease, background-color 220ms ease;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease, background-color 220ms ease, filter 220ms ease;
 }
 
 article:hover,
 section.rounded-\[2rem\]:hover,
 section.rounded-3xl:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  filter: saturate(1.03);
+}
+
+:where(section, article, div).rounded-\[2rem\],
+:where(section, article).rounded-3xl {
+  border-color: rgba(125, 151, 181, 0.22) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.52)) !important;
+  backdrop-filter: blur(22px) saturate(1.12);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.80) inset,
+    0 24px 70px rgba(51, 65, 85, 0.10) !important;
+}
+
+:where(.bg-white, .bg-white\/90, .bg-white\/95, .bg-white\/80) {
+  background-color: rgba(255, 255, 255, 0.62) !important;
+  backdrop-filter: blur(20px) saturate(1.08);
+}
+
+:where(.bg-slate-50, .bg-slate-100) {
+  background-color: rgba(248, 250, 252, 0.62) !important;
+}
+
+:where(.border-slate-100, .border-slate-200, .border-slate-300) {
+  border-color: rgba(125, 151, 181, 0.24) !important;
+}
+
+html.dark :where(section, article, div).rounded-\[2rem\],
+html.dark :where(section, article).rounded-3xl {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  background:
+    linear-gradient(145deg, rgba(15, 23, 42, 0.78), rgba(2, 6, 23, 0.62)) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 24px 80px rgba(0, 0, 0, 0.42) !important;
 }
 
 html.dark :where(.bg-white, .bg-white\/90, .bg-white\/95, .bg-white\/80) {
-  background-color: rgba(15, 23, 42, 0.82) !important;
-  backdrop-filter: blur(18px);
+  background-color: rgba(15, 23, 42, 0.74) !important;
+  backdrop-filter: blur(20px) saturate(1.12);
 }
 
 html.dark :where(.bg-slate-50, .bg-slate-100) {
-  background-color: rgba(30, 41, 59, 0.82) !important;
+  background-color: rgba(30, 41, 59, 0.72) !important;
 }
 
 html.dark :where(.border-slate-100, .border-slate-200, .border-slate-300) {
   border-color: rgba(148, 163, 184, 0.18) !important;
 }
 
-html.dark :where(.text-slate-950, .text-slate-900, .text-slate-800) {
-  color: #f8fafc !important;
-}
-
-html.dark :where(.text-slate-700, .text-slate-600, .text-slate-500) {
-  color: #cbd5e1 !important;
-}
-
-html.dark :where(.text-slate-400) {
-  color: #94a3b8 !important;
-}
+html.dark :where(.text-slate-950, .text-slate-900, .text-slate-800) { color: #f8fafc !important; }
+html.dark :where(.text-slate-700, .text-slate-600, .text-slate-500) { color: #cbd5e1 !important; }
+html.dark :where(.text-slate-400) { color: #94a3b8 !important; }
 
 html.dark input,
 html.dark select,
@@ -239,9 +269,7 @@ html.dark textarea {
 }
 
 html.dark input::placeholder,
-html.dark textarea::placeholder {
-  color: rgba(148, 163, 184, 0.74) !important;
-}
+html.dark textarea::placeholder { color: rgba(148, 163, 184, 0.74) !important; }
 
 html.dark table,
 html.dark tr {
@@ -257,8 +285,31 @@ html.dark th {
 
 html.dark .shadow-xl,
 html.dark .shadow-2xl,
-html.dark .shadow-lg {
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38) !important;
+html.dark .shadow-lg { box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38) !important; }
+
+/* Escala visual en pantallas grandes */
+@media (min-width: 1280px) {
+  .dashboard-content h1 { font-size: clamp(1.9rem, 1.4vw, 2.65rem); }
+  .dashboard-content h2 { font-size: clamp(1.35rem, 1.1vw, 1.9rem); }
+  .dashboard-content p,
+  .dashboard-content td,
+  .dashboard-content th,
+  .dashboard-content button,
+  .dashboard-content a,
+  .dashboard-content input,
+  .dashboard-content select,
+  .dashboard-content textarea { font-size: 1.04rem; }
+  .dashboard-content .text-xs { font-size: 0.82rem !important; }
+  .dashboard-content .text-sm { font-size: 0.98rem !important; }
+  .dashboard-content .text-2xl { font-size: 1.75rem !important; }
+  .dashboard-content .text-3xl { font-size: 2.35rem !important; }
+  .dashboard-content :where(section, article).rounded-\[2rem\],
+  .dashboard-content :where(section, article).rounded-3xl { padding: clamp(1.35rem, 1.35vw, 2rem); }
+}
+
+@media (min-width: 1536px) {
+  .dashboard-content { max-width: 1920px; margin-inline: auto; }
+  .dashboard-content :where(.grid) { gap: clamp(1rem, 1.2vw, 1.65rem); }
 }
 
 /* ─── Loader ──────────────────────────────────────────────────────────────── */
@@ -270,7 +321,7 @@ html.dark .shadow-lg {
   padding: 5rem 1.5rem 1.5rem;
   background:
     radial-gradient(circle at 20% 10%, var(--glow-a), transparent 20rem),
-    linear-gradient(160deg, #f8fbff 0%, #eef6ff 55%, #ffffff 100%);
+    linear-gradient(160deg, #eaf7ff 0%, #eef8ff 55%, #f9fbff 100%);
 }
 
 html.dark .vuelos-loader {
@@ -297,18 +348,10 @@ html.dark .vuelos-loader {
   background: rgba(148, 163, 184, 0.18);
 }
 
-.vuelos-loader-line {
-  height: 0.8rem;
-}
+.vuelos-loader-line { height: 0.8rem; }
+.skeleton-line { height: 0.9rem; }
 
-.skeleton-line {
-  height: 0.9rem;
-}
-
-.skeleton-shine {
-  position: relative;
-  overflow: hidden;
-}
+.skeleton-shine { position: relative; overflow: hidden; }
 
 .skeleton-shine::after {
   content: "";
@@ -319,64 +362,33 @@ html.dark .vuelos-loader {
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
-html.dark .skeleton-shine::after {
-  background: linear-gradient(90deg, transparent 0%, rgba(148, 163, 184, 0.18) 50%, transparent 100%);
-}
+html.dark .skeleton-shine::after { background: linear-gradient(90deg, transparent 0%, rgba(148, 163, 184, 0.18) 50%, transparent 100%); }
 
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-in-from-bottom-4 { from { transform: translateY(1rem); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slide-in-from-bottom-4 {
-  from { transform: translateY(1rem); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.animate-in {
-  animation-fill-mode: both;
-}
-
-.fade-in {
-  animation-name: fade-in;
-}
-
-.slide-in-from-bottom-4 {
-  animation-name: slide-in-from-bottom-4;
-}
-
-.duration-200 {
-  animation-duration: 200ms;
-}
+.animate-in { animation-fill-mode: both; }
+.fade-in { animation-name: fade-in; }
+.slide-in-from-bottom-4 { animation-name: slide-in-from-bottom-4; }
+.duration-200 { animation-duration: 200ms; }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
-
   .skeleton-shine::after,
   .animate-spin,
-  .animate-in {
-    animation: none !important;
-  }
+  .animate-in { animation: none !important; }
 }
 
 /* ─── Mobile ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 767px) {
-  body {
-    position: relative;
-  }
+  body { position: relative; }
 
   main,
   section,
@@ -385,31 +397,19 @@ html.dark .skeleton-shine::after {
   header,
   nav,
   aside,
-  div {
-    max-width: 100%;
-  }
+  div { max-width: 100%; }
 
   input,
   select,
-  textarea {
-    font-size: 16px !important;
-  }
+  textarea { font-size: 16px !important; }
 
   .dashboard-bg,
-  .admin-bg {
-    overflow-x: hidden;
-    background-size: auto;
-  }
+  .admin-bg { overflow-x: hidden; background-size: auto; }
 
   .dashboard-bg::before,
-  .admin-bg::before {
-    background-size: 34px 34px;
-    opacity: 0.35;
-  }
+  .admin-bg::before { background-size: 34px 34px; opacity: 0.35; }
 
-  .overflow-x-auto {
-    overflow-x: visible !important;
-  }
+  .overflow-x-auto { overflow-x: visible !important; }
 
   table {
     display: block;
@@ -419,9 +419,7 @@ html.dark .skeleton-shine::after {
     background: transparent !important;
   }
 
-  thead {
-    display: none !important;
-  }
+  thead { display: none !important; }
 
   tbody {
     display: grid;
@@ -452,9 +450,7 @@ html.dark .skeleton-shine::after {
     word-break: break-word;
   }
 
-  td:last-child {
-    border-bottom: 0;
-  }
+  td:last-child { border-bottom: 0; }
 
   td::before {
     content: attr(data-label);
@@ -469,11 +465,7 @@ html.dark .skeleton-shine::after {
   }
 
   td:not([data-label])::before,
-  td[data-label=""]::before {
-    content: none;
-  }
+  td[data-label=""]::before { content: none; }
 
-  td>* {
-    max-width: 100%;
-  }
+  td>* { max-width: 100%; }
 }
