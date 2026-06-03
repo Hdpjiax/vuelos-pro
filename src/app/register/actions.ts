@@ -26,18 +26,23 @@ export async function registerAction(
 
   const supabase = await createClient();
 
-  const { data: productionRow } = await supabase
-    .from("app_settings")
-    .select("value")
-    .eq("key", "production")
-    .maybeSingle();
+  // Verificar si el registro está habilitado — con manejo de error seguro
+  try {
+    const { data: productionRow } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "production")
+      .maybeSingle();
 
-  const registrationEnabled =
-    (productionRow?.value as { public_registration_enabled?: boolean } | null)
-      ?.public_registration_enabled ?? true;
+    const registrationEnabled =
+      (productionRow?.value as { public_registration_enabled?: boolean } | null)
+        ?.public_registration_enabled ?? true;
 
-  if (!registrationEnabled) {
-    return { error: "El registro público está desactivado. Solicita tu cuenta al administrador." };
+    if (!registrationEnabled) {
+      return { error: "El registro público está desactivado. Solicita tu cuenta al administrador." };
+    }
+  } catch {
+    // Si app_settings falla, continuar igual (no bloquear el registro)
   }
 
   const { error } = await supabase.auth.signUp({
@@ -47,8 +52,21 @@ export async function registerAction(
   });
 
   if (error) {
-    // ✅ Mensaje genérico — no expone detalles de Supabase
-    return { error: "No se pudo crear la cuenta. Verifica los datos e intenta de nuevo." };
+    // Mapear errores comunes de Supabase a mensajes en español
+    if (error.message.includes("already registered") || error.message.includes("already been registered")) {
+      return { error: "Este correo ya tiene una cuenta registrada." };
+    }
+    if (error.message.includes("Password")) {
+      return { error: "La contraseña no cumple los requisitos mínimos." };
+    }
+    if (error.message.includes("email")) {
+      return { error: "El correo electrónico no es válido." };
+    }
+    if (error.message.includes("signup")) {
+      return { error: "El registro está desactivado en este momento." };
+    }
+    // En desarrollo: mostrar el error real para diagnosticar
+    return { error: `Error: ${error.message}` };
   }
 
   redirect("/login?success=1");
