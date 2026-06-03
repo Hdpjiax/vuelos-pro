@@ -1,6 +1,7 @@
 "use client";
 
 import { Plane, Clock, Users, AlertCircle, Zap, Luggage, Info, Route } from "lucide-react";
+import { FlightBookingLink } from "@/components/flights/FlightBookingLink";
 
 type Segment = {
   departure: { iataCode: string; at: string };
@@ -14,6 +15,7 @@ type Itinerary = { duration: string; segments: Segment[] };
 
 type FlightOffer = {
   id: string;
+  bookingUrl?: string;
   price: { total: string; currency: string; grandTotal: string };
   itineraries: Itinerary[];
   numberOfBookableSeats: number;
@@ -24,7 +26,7 @@ type Props = {
   data: {
     data: FlightOffer[];
     dictionaries?: { carriers?: Record<string, string> };
-    meta?: { source?: "mock" | "amadeus"; environment?: "test" | "production" };
+    meta?: { source?: string; environment?: string; currency?: string; reason?: string };
   } | null;
   error?: string;
   searchSummary?: {
@@ -97,7 +99,7 @@ export function FlightSearchResults({ data, error, searchSummary }: Props) {
   }
 
   const carriers = data.dictionaries?.carriers ?? {};
-  const isMock = data.meta?.source === "mock";
+  const isMock = data.meta?.source === "mock" || data.meta?.source === "mock-fallback";
   const totalPassengers = (searchSummary?.adults ?? 0) + (searchSummary?.children ?? 0) + (searchSummary?.infants ?? 0);
 
   return (
@@ -106,7 +108,7 @@ export function FlightSearchResults({ data, error, searchSummary }: Props) {
         <div className="flex items-start gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
           <Info size={18} className="mt-0.5 shrink-0" />
           <p className="text-sm font-bold">
-            Modo demostración activo. Agrega AMADEUS_CLIENT_ID y AMADEUS_CLIENT_SECRET para mostrar cotizaciones reales.
+            Modo demostración o respaldo activo. Revisa RAPIDAPI_KEY para mostrar cotizaciones reales de Sky Scrapper.
           </p>
         </div>
       )}
@@ -120,17 +122,10 @@ export function FlightSearchResults({ data, error, searchSummary }: Props) {
           <span className="text-sky-400">·</span>
           <p className="text-sm text-sky-700">{new Date(searchSummary.departureDate + "T12:00:00").toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" })}</p>
           {searchSummary.returnDate && (
-            <>
-              <span className="text-sky-400">→</span>
-              <p className="text-sm text-sky-700">{new Date(searchSummary.returnDate + "T12:00:00").toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" })}</p>
-            </>
+            <><span className="text-sky-400">→</span><p className="text-sm text-sky-700">{new Date(searchSummary.returnDate + "T12:00:00").toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" })}</p></>
           )}
-          {searchSummary.nonStop && (
-            <span className="flex items-center gap-1 rounded-xl bg-emerald-100 px-2.5 py-0.5 text-xs font-black text-emerald-700"><Route size={11} />Directo</span>
-          )}
-          {searchSummary.travelClass && searchSummary.travelClass !== "ANY" && (
-            <span className="rounded-xl bg-white px-2.5 py-0.5 text-xs font-black text-sky-700">{CABIN_LABEL[searchSummary.travelClass] ?? searchSummary.travelClass}</span>
-          )}
+          {searchSummary.nonStop && <span className="flex items-center gap-1 rounded-xl bg-emerald-100 px-2.5 py-0.5 text-xs font-black text-emerald-700"><Route size={11} />Directo</span>}
+          {searchSummary.travelClass && searchSummary.travelClass !== "ANY" && <span className="rounded-xl bg-white px-2.5 py-0.5 text-xs font-black text-sky-700">{CABIN_LABEL[searchSummary.travelClass] ?? searchSummary.travelClass}</span>}
           <span className="ml-auto rounded-xl bg-sky-100 px-2.5 py-0.5 text-xs font-black text-sky-700">{data.data.length} opciones</span>
         </div>
       )}
@@ -167,14 +162,8 @@ export function FlightSearchResults({ data, error, searchSummary }: Props) {
 
                         <div className="flex min-w-[70px] flex-1 flex-col items-center gap-0.5 px-2">
                           <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400"><Clock size={10} />{parseDuration(itin.duration)}</div>
-                          <div className="flex w-full items-center gap-1">
-                            <div className="h-px flex-1 bg-slate-200" />
-                            <Plane size={12} className="rotate-90 text-sky-400" />
-                            <div className="h-px flex-1 bg-slate-200" />
-                          </div>
-                          {itinStops === 0
-                            ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-black text-emerald-700">Directo</span>
-                            : <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black text-amber-700">{itinStops} escala{itinStops > 1 ? "s" : ""}</span>}
+                          <div className="flex w-full items-center gap-1"><div className="h-px flex-1 bg-slate-200" /><Plane size={12} className="rotate-90 text-sky-400" /><div className="h-px flex-1 bg-slate-200" /></div>
+                          {itinStops === 0 ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-black text-emerald-700">Directo</span> : <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black text-amber-700">{itinStops} escala{itinStops > 1 ? "s" : ""}</span>}
                         </div>
 
                         <div className="text-center">
@@ -196,11 +185,12 @@ export function FlightSearchResults({ data, error, searchSummary }: Props) {
                 </div>
               </div>
 
-              <div className="flex shrink-0 flex-col items-center justify-center rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50 to-white px-6 py-5 md:min-w-[160px]">
+              <div className="flex shrink-0 flex-col items-center justify-center rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50 to-white px-6 py-5 md:min-w-[180px]">
                 <p className="text-[10px] font-black uppercase tracking-widest text-sky-500">Precio total</p>
                 <p className="mt-1 text-3xl font-black text-slate-900">{formatPrice(offer.price.grandTotal, offer.price.currency)}</p>
                 <p className="text-xs text-slate-400">{offer.travelerPricings.length} tarifa{offer.travelerPricings.length > 1 ? "s" : ""}</p>
                 <p className="mt-1 text-[10px] text-slate-400">{offer.price.currency}</p>
+                <FlightBookingLink offer={offer} searchSummary={searchSummary} />
               </div>
             </div>
           </article>
