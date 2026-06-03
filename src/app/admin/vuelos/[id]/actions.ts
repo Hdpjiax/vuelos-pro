@@ -429,8 +429,8 @@ export async function updateFinancialsAction(formData: FormData) {
   if (!admin) redirect("/login");
 
   const { flight_id: flightId, provider_cost_amount, admin_commission_amount, financial_status } = parsed.data;
-  const providerCost = cleanMoney(provider_cost_amount);
-  const adminCommission = cleanMoney(admin_commission_amount);
+  const providerCost = cleanMoney(String(provider_cost_amount));
+  const adminCommission = cleanMoney(String(admin_commission_amount));
 
   const profit = Math.round((adminCommission - providerCost) * 100) / 100;
 
