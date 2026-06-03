@@ -35,6 +35,13 @@ function flightDateValue(flight: any) {
   return Number.isFinite(value) ? value : 0;
 }
 
+function passengerSearchText(flight: any) {
+  const passengers = Array.isArray(flight?.passengers) ? flight.passengers : [];
+  return passengers
+    .map((p: any) => `${p?.full_name ?? ""} ${p?.birth_date ?? ""}`)
+    .join(" ");
+}
+
 // ── Buscar vuelos ───────────────────────────────────────────────────────────────────
 export async function searchFlightsAction(query: string) {
   const supabase = await createClient();
@@ -157,10 +164,19 @@ export async function getWorkspaceNotesAction(opts?: { label?: string; search?: 
   const search = opts?.search?.trim().toLowerCase() ?? "";
   if (!search) return data;
 
-  return data.filter((n: any) => [
-    n.content, n.cc_number, n.cc_holder, n.cc_bank, n.site_url,
-    (n.flights as any)?.[0]?.flight_folio ?? (n.flights as any)?.flight_folio,
-  ].filter(Boolean).join(" ").toLowerCase().includes(search));
+  return data.filter((n: any) => {
+    const flight = (n.flights as any)?.[0] ?? (n.flights as any);
+    return [
+      n.content,
+      n.cc_number,
+      n.cc_holder,
+      n.cc_address,
+      n.cc_bank,
+      n.site_url,
+      flight?.flight_folio,
+      passengerSearchText(flight),
+    ].filter(Boolean).join(" ").toLowerCase().includes(search);
+  });
 }
 
 // ── Eliminar nota ─────────────────────────────────────────────────────────────────────
