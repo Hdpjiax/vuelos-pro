@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./visual-tuning.css";
 import "./final-layout-fixes.css";
+import "./visual-point-fixes.css";
 
 export const metadata: Metadata = {
   title: "VuelosPro",
