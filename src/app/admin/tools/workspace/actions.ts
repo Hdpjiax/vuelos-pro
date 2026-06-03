@@ -26,28 +26,80 @@ export async function lookupBinAction(bin: string): Promise<{
   }
 }
 
+function escapeSearch(value: string) {
+  return value.trim().replace(/[,%_]/g, " ").replace(/\s+/g, " ");
+}
+
+function flightDateValue(flight: any) {
+  const value = flight?.flight_date ? new Date(flight.flight_date).getTime() : 0;
+  return Number.isFinite(value) ? value : 0;
+}
+
 // ── Buscar vuelos ───────────────────────────────────────────────────────────────────
 export async function searchFlightsAction(query: string) {
   const supabase = await createClient();
-  const q = query.trim().toLowerCase();
+  const q = escapeSearch(query);
 
-  const { data: flights } = await supabase
-    .from("flights")
-    .select("id, flight_folio, flight_date, return_flight_date, flight_time, flight_type, fare_type, total_amount, user_id, passengers")
-    .or(`flight_folio.ilike.%${q}%`)
-    .order("flight_date", { ascending: false })
-    .limit(20);
+  if (q.length < 2) return [];
 
-  if (!flights?.length) return [];
+  const selectFlightFields = "id, flight_folio, flight_date, return_flight_date, flight_time, flight_type, fare_type, total_amount, user_id, passengers";
 
-  const userIds = [...new Set(flights.map((f: any) => f.user_id).filter(Boolean))];
-  const { data: profiles } = await supabase
+  const { data: matchedProfiles } = await supabase
     .from("profiles")
     .select("id, full_name, email")
-    .in("id", userIds);
+    .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
+    .limit(25);
 
-  const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
-  return flights.map((f: any) => ({ ...f, profiles: profileMap.get(f.user_id) ?? null }));
+  const matchedUserIds = [...new Set((matchedProfiles ?? []).map((profile: any) => profile.id).filter(Boolean))];
+
+  const [{ data: folioFlights }, { data: userFlights }] = await Promise.all([
+    supabase
+      .from("flights")
+      .select(selectFlightFields)
+      .ilike("flight_folio", `%${q}%`)
+      .order("flight_date", { ascending: false })
+      .limit(25),
+    matchedUserIds.length
+      ? supabase
+          .from("flights")
+          .select(selectFlightFields)
+          .in("user_id", matchedUserIds)
+          .order("flight_date", { ascending: false })
+          .limit(25)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const flightMap = new Map<string, any>();
+  for (const flight of [...(folioFlights ?? []), ...(userFlights ?? [])]) {
+    if (flight?.id) flightMap.set(flight.id, flight);
+  }
+
+  const flights = Array.from(flightMap.values())
+    .sort((a, b) => flightDateValue(b) - flightDateValue(a))
+    .slice(0, 25);
+
+  if (!flights.length) return [];
+
+  const userIds = [...new Set(flights.map((f: any) => f.user_id).filter(Boolean))];
+  const existingProfiles = new Map((matchedProfiles ?? []).map((profile: any) => [profile.id, profile]));
+  const missingUserIds = userIds.filter((id) => !existingProfiles.has(id));
+
+  let extraProfiles: any[] = [];
+  if (missingUserIds.length) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", missingUserIds);
+    extraProfiles = data ?? [];
+  }
+
+  const profileMap = new Map([...Array.from(existingProfiles.entries()), ...extraProfiles.map((profile: any) => [profile.id, profile])]);
+
+  return flights.map((flight: any) => ({
+    ...flight,
+    profiles: profileMap.get(flight.user_id) ?? null,
+    search_label: `${flight.flight_folio ?? flight.id} · ${profileMap.get(flight.user_id)?.full_name ?? "Usuario"} · ${profileMap.get(flight.user_id)?.email ?? "Sin correo"}`,
+  }));
 }
 
 // ── Guardar nota ─────────────────────────────────────────────────────────────────────
