@@ -104,6 +104,15 @@ export function FlightSearchResults({ data, error, searchSummary }: Props) {
 
   return (
     <div className="space-y-4">
+      {isMock && (
+        <div className="flex items-start gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+          <Info size={18} className="mt-0.5 shrink-0" />
+          <p className="text-sm font-bold">
+            Modo demostración o respaldo activo. Revisa RAPIDAPI_KEY para mostrar cotizaciones reales de Sky Scrapper.
+          </p>
+        </div>
+      )}
+
       {searchSummary && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-sky-50 px-4 py-3">
           <Plane size={15} className="shrink-0 text-sky-600" />
@@ -176,7 +185,7 @@ export function FlightSearchResults({ data, error, searchSummary }: Props) {
                 </div>
               </div>
 
-              <div className="flex shrink-0 flex-col items-center justify-center rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50 to-white px-6 py-5 md:min-w-[180px]">
+              <div className="flight-price-card flex shrink-0 flex-col items-center justify-center rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50 to-white px-6 py-5 md:min-w-[180px]">
                 <p className="text-[10px] font-black uppercase tracking-widest text-sky-500">Precio total</p>
                 <p className="mt-1 text-3xl font-black text-slate-900">{formatPrice(offer.price.grandTotal, offer.price.currency)}</p>
                 <p className="text-xs text-slate-400">{offer.travelerPricings.length} tarifa{offer.travelerPricings.length > 1 ? "s" : ""}</p>
