@@ -142,7 +142,7 @@ export default async function AdminHistoryPage({ searchParams }: PageProps) {
                       </p>
 
                       {group.logs.length > 1 ? (
-                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                        <div className="history-activity-panel mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
                           <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Actividad reciente</p>
                           <div className="space-y-2">
                             {group.logs.slice(0, 3).map((log) => (
