@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { resend } from "@/lib/resend";
+import { WelcomeEmail } from "@/lib/emails/welcome";
 
 export type RegisterState = {
   error?: string;
@@ -26,7 +28,6 @@ export async function registerAction(
 
   const supabase = await createClient();
 
-  // Verificar si el registro está habilitado
   try {
     const { data: productionRow } = await supabase
       .from("app_settings")
@@ -42,7 +43,7 @@ export async function registerAction(
       return { error: "El registro público está desactivado. Solicita tu cuenta al administrador." };
     }
   } catch {
-    // Si app_settings falla, continuar igual
+    // continuar si falla app_settings
   }
 
   const { error } = await supabase.auth.signUp({
@@ -52,8 +53,22 @@ export async function registerAction(
   });
 
   if (error) {
-    // ← Mostrar error exacto para diagnosticar
-    return { error: `Error Supabase: ${error.message}` };
+    if (error.message.includes("rate limit")) {
+      return { error: "Demasiados registros en poco tiempo. Espera unos minutos." };
+    }
+    return { error: `Error: ${error.message}` };
+  }
+
+  // Enviar correo de bienvenida (sin bloquear el registro si falla)
+  try {
+    await resend.emails.send({
+      from: 'VuelosPro <noreply@tudominio.com>',
+      to: email,
+      subject: '¡Bienvenido a VuelosPro! ✈️',
+      react: WelcomeEmail({ fullName }),
+    });
+  } catch {
+    // No bloquear si el correo falla
   }
 
   redirect("/login?success=1");
