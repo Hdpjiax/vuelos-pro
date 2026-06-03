@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { notifyAdmins, notifyUser } from '@/lib/flight-operations';
 
 export async function sendSupportMessageAction(fd: FormData) {
   const supabase = await createClient();
@@ -19,7 +20,7 @@ export async function sendSupportMessageAction(fd: FormData) {
   });
   if (error) return { error: error.message };
 
-  // Saber si quien envía es admin o usuario
+  // Obtener perfil del remitente
   const { data: senderProfile } = await supabase
     .from('profiles')
     .select('role, full_name, email')
@@ -28,32 +29,24 @@ export async function sendSupportMessageAction(fd: FormData) {
 
   const isAdmin = senderProfile?.role === 'admin';
   const senderName = senderProfile?.full_name || senderProfile?.email || 'Soporte';
+  const preview = `${senderName}: ${message.trim().slice(0, 80)}`;
 
   if (isAdmin) {
     // Admin escribe → notificar al usuario dueño de la conversación
-    await supabase.from('notifications').insert({
-      user_id: user_id,
-      title: `💬 Respuesta de soporte`,
-      body: `${senderName}: ${message.trim().slice(0, 80)}`,
+    await notifyUser(supabase, {
+      user_id,
       flight_id: null,
+      title: '💬 Respuesta de soporte',
+      body: preview,
     });
   } else {
     // Usuario escribe → notificar a todos los admins
-    const { data: admins } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('role', 'admin');
-
-    if (admins?.length) {
-      await supabase.from('notifications').insert(
-        admins.map((admin) => ({
-          user_id: admin.id,
-          title: `💬 Mensaje de soporte`,
-          body: `${senderName}: ${message.trim().slice(0, 80)}`,
-          flight_id: null,
-        }))
-      );
-    }
+    await notifyAdmins(supabase, {
+      flight_id: null,
+      title: '💬 Mensaje de soporte',
+      body: preview,
+      excludeUserId: null,
+    });
   }
 
   return { ok: true };
