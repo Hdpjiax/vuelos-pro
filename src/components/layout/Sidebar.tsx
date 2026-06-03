@@ -1,17 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   Plane, LayoutDashboard, CreditCard, History, MessageSquare,
   QrCode, Users, Send, CalendarDays, Bell, Settings, Rocket,
   UserCircle, BarChart3, WalletCards, Search, Files, Menu, X, LogOut, Tag,
+  Sun, Moon, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { SupportPanel, SupportFloating } from '@/components/SupportButton';
+import { SupportPanel } from "@/components/SupportButton";
 
 type NavItem = {
   href: string;
@@ -61,21 +61,62 @@ function getActiveHref(items: NavItem[], pathname: string) {
   return matches.sort((a, b) => b.href.length - a.href.length)[0]?.href;
 }
 
+function useThemeMode() {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("vuelos-theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const nextTheme = saved === "dark" || saved === "light" ? saved : prefersDark ? "dark" : "light";
+    setTheme(nextTheme);
+    document.documentElement.classList.toggle("dark", nextTheme === "dark");
+  }, []);
+
+  function toggleTheme() {
+    setTheme((current) => {
+      const next = current === "dark" ? "light" : "dark";
+      document.documentElement.classList.toggle("dark", next === "dark");
+      window.localStorage.setItem("vuelos-theme", next);
+      return next;
+    });
+  }
+
+  return { theme, toggleTheme };
+}
+
 function Brand({ role }: { role: "admin" | "user" }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/10">
+      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-lg shadow-sky-200/60 ring-1 ring-white/60 dark:from-cyan-400 dark:via-blue-500 dark:to-violet-600 dark:shadow-cyan-950/40 dark:ring-white/10">
+        <span className="absolute inset-0 rounded-2xl bg-white/15 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         {role === "admin" ? <QrCode size={22} /> : <CalendarDays size={22} />}
       </div>
       <div className="min-w-0">
-        <h1 className="text-xl font-black tracking-tight text-white">
-          Vuelos<span className="text-sky-300">Pro</span>
+        <h1 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">
+          Vuelos<span className="text-sky-500 dark:text-cyan-300">Pro</span>
         </h1>
-        <p className="truncate text-xs uppercase tracking-[0.22em] text-sky-200/70">
+        <p className="truncate text-xs uppercase tracking-[0.22em] text-slate-500 dark:text-sky-200/70">
           {role === "admin" ? "Panel administrativo" : "Panel de usuario"}
         </p>
       </div>
     </div>
+  );
+}
+
+function ThemeButton({ theme, onToggle, compact = false }: { theme: "light" | "dark"; onToggle: () => void; compact?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={cn(
+        "group flex items-center justify-center gap-2 rounded-2xl border border-slate-200/70 bg-white/70 font-black text-slate-700 shadow-sm shadow-slate-200/60 backdrop-blur-xl hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 hover:shadow-lg hover:shadow-sky-100 dark:border-white/10 dark:bg-white/5 dark:text-sky-100 dark:shadow-black/20 dark:hover:border-cyan-400/30 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-200",
+        compact ? "h-10 w-10" : "w-full px-4 py-3 text-sm"
+      )}
+      aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+    >
+      {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+      {!compact && <span>{theme === "dark" ? "Modo claro" : "Modo oscuro"}</span>}
+    </button>
   );
 }
 
@@ -89,10 +130,8 @@ function LogoutButton({ compact = false }: { compact?: boolean }) {
   return (
     <button type="button" onClick={handleLogout}
       className={cn(
-        "flex items-center gap-2 rounded-2xl font-bold text-sm transition active:scale-95",
-        compact
-          ? "px-3 py-2 bg-white/10 text-white ring-1 ring-white/20 hover:bg-rose-500/80 hover:ring-rose-400"
-          : "w-full px-4 py-3 bg-white/10 text-sky-100 ring-1 ring-white/10 hover:bg-rose-500/80 hover:text-white hover:ring-rose-400"
+        "flex items-center gap-2 rounded-2xl border border-rose-200/70 bg-rose-50/80 font-bold text-rose-600 shadow-sm shadow-rose-100/60 backdrop-blur-xl hover:bg-rose-500 hover:text-white hover:shadow-lg hover:shadow-rose-200/80 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200 dark:shadow-black/20 dark:hover:bg-rose-500/80 dark:hover:text-white",
+        compact ? "px-3 py-2 text-sm" : "w-full px-4 py-3 text-sm"
       )}>
       <LogOut size={16} className="shrink-0" />
       {!compact && <span>Cerrar sesión</span>}
@@ -105,6 +144,7 @@ export function Sidebar({ role, userName }: SidebarProps) {
   const items = role === "admin" ? adminItems : userItems;
   const activeHref = getActiveHref(items, pathname);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useThemeMode();
 
   useEffect(() => { setMenuOpen(false); }, [pathname]);
   useEffect(() => {
@@ -114,26 +154,26 @@ export function Sidebar({ role, userName }: SidebarProps) {
 
   return (
     <>
-      {/* HEADER MÓVIL */}
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-sky-950/95 px-4 py-3 text-white shadow-xl shadow-sky-950/20 backdrop-blur md:hidden">
-        <div className="flex items-center justify-between">
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-slate-200/60 bg-white/78 px-4 py-3 text-slate-950 shadow-xl shadow-slate-200/40 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/78 dark:text-white dark:shadow-black/30 md:hidden">
+        <div className="flex items-center justify-between gap-3">
           <Brand role={role} />
-          <button onClick={() => setMenuOpen((v) => !v)} aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"} aria-expanded={menuOpen}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10 transition hover:bg-white/20 active:scale-95">
-            {menuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeButton theme={theme} onToggle={toggleTheme} compact />
+            <button onClick={() => setMenuOpen((v) => !v)} aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"} aria-expanded={menuOpen}
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200/70 bg-white/70 text-slate-700 shadow-sm shadow-slate-200/60 backdrop-blur-xl hover:bg-sky-50 hover:text-sky-700 dark:border-white/10 dark:bg-white/5 dark:text-sky-100 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-200">
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* OVERLAY MÓVIL */}
       <div onClick={() => setMenuOpen(false)}
-        className={cn("fixed inset-0 z-30 bg-black/30 backdrop-blur-sm transition-opacity duration-300 md:hidden",
+        className={cn("fixed inset-0 z-30 bg-slate-950/25 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/55 md:hidden",
           menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")}
         aria-hidden="true" />
 
-      {/* DRAWER MÓVIL */}
       <div className={cn(
-        "fixed inset-x-0 top-[64px] z-40 border-b border-white/10 bg-sky-950/98 px-4 pb-5 pt-4 shadow-2xl backdrop-blur transition-all duration-300 md:hidden",
+        "fixed inset-x-3 top-[72px] z-40 rounded-[1.75rem] border border-slate-200/70 bg-white/86 px-3 pb-4 pt-3 shadow-2xl shadow-slate-300/50 backdrop-blur-2xl transition-all duration-300 dark:border-white/10 dark:bg-slate-950/88 dark:shadow-black/50 md:hidden",
         menuOpen ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-3 pointer-events-none"
       )}>
         <nav className="grid grid-cols-4 gap-2" aria-label="Navegación principal">
@@ -142,12 +182,12 @@ export function Sidebar({ role, userName }: SidebarProps) {
             return (
               <Link key={item.href} href={item.href} aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-3 text-[13px] font-black leading-tight transition active:scale-95 text-white ring-1 ring-white/10",
+                  "group flex flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-3 text-[12px] font-black leading-tight ring-1 transition-all duration-300",
                   isActive
-                    ? "bg-cyan-500 text-white ring-2 ring-sky-200 shadow-lg shadow-sky-100/30"
-                    : "bg-white/15 text-white ring-1 ring-white/30 hover:bg-cyan-500"
+                    ? "bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-lg shadow-sky-200/70 ring-white/70 dark:from-cyan-400 dark:via-blue-500 dark:to-violet-600 dark:shadow-cyan-950/30 dark:ring-white/10"
+                    : "bg-slate-50/90 text-slate-600 ring-slate-200/60 hover:bg-white hover:text-sky-700 hover:shadow-lg hover:shadow-sky-100 dark:bg-white/5 dark:text-slate-300 dark:ring-white/10 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-200"
                 )}>
-                <span>{item.icon}</span>
+                <span className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110">{item.icon}</span>
                 <span className="truncate w-full text-center">{item.shortLabel ?? item.label}</span>
               </Link>
             );
@@ -158,36 +198,45 @@ export function Sidebar({ role, userName }: SidebarProps) {
         </div>
       </div>
 
-      {/* SIDEBAR DESKTOP */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden h-dvh w-72 shrink-0 flex-col border-r border-white/10 bg-sky-950 px-5 py-6 text-white md:flex">
-        <div className="mb-6 shrink-0"><Brand role={role} /></div>
-        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      <aside className="fixed inset-y-0 left-0 z-40 hidden h-dvh w-72 shrink-0 flex-col border-r border-slate-200/60 bg-white/72 px-5 py-6 text-slate-900 shadow-2xl shadow-slate-200/50 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/72 dark:text-white dark:shadow-black/40 md:flex">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-r-[2rem]">
+          <div className="absolute -left-24 top-10 h-56 w-56 rounded-full bg-sky-300/18 blur-3xl dark:bg-cyan-400/12" />
+          <div className="absolute -bottom-28 left-12 h-72 w-72 rounded-full bg-blue-400/12 blur-3xl dark:bg-violet-500/14" />
+        </div>
+        <div className="relative mb-6 shrink-0"><Brand role={role} /></div>
+        <div className="relative mb-4 flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/60 px-3 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-sky-200/70">
+          <Sparkles size={14} className="text-sky-500 dark:text-cyan-300" />
+          Navegación
+        </div>
+        <nav className="relative min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           aria-label="Navegación principal">
           {items.map((item) => {
             const isActive = item.href === activeHref;
             return (
               <Link key={item.href} href={item.href} aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition",
+                  "group relative flex items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 text-sm font-bold ring-1 transition-all duration-300",
                   isActive
-                    ? "bg-cyan-500 text-white shadow-lg shadow-cyan-950/25 ring-1 ring-cyan-300"
-                    : "text-sky-50/85 hover:bg-white/10 hover:text-white"
+                    ? "bg-gradient-to-r from-sky-400 to-blue-600 text-white shadow-xl shadow-sky-200/60 ring-white/60 dark:from-cyan-400 dark:via-blue-500 dark:to-violet-600 dark:shadow-cyan-950/40 dark:ring-white/10"
+                    : "bg-white/35 text-slate-600 ring-transparent hover:bg-white/80 hover:text-sky-700 hover:shadow-lg hover:shadow-sky-100 dark:bg-white/[0.035] dark:text-slate-300 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-200 dark:hover:shadow-cyan-950/30"
                 )}>
-                <span className="shrink-0 [&>svg]:h-5 [&>svg]:w-5">{item.icon}</span>
+                <span className={cn("absolute inset-y-2 left-1 w-1 rounded-full transition-all duration-300", isActive ? "bg-white/80" : "bg-transparent group-hover:bg-sky-300 dark:group-hover:bg-cyan-300")} />
+                <span className="shrink-0 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110 [&>svg]:h-5 [&>svg]:w-5">{item.icon}</span>
                 <span className="truncate text-[15px]">{item.label}</span>
               </Link>
             );
           })}
         </nav>
-        <div className="mt-4 shrink-0 space-y-2 border-t border-white/10 pt-4">
+        <div className="relative mt-4 shrink-0 space-y-2 border-t border-slate-200/70 pt-4 dark:border-white/10">
           {userName && (
-            <div className="flex items-center gap-3 rounded-2xl px-4 py-3 bg-white/5 ring-1 ring-white/10">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-sm font-black text-white">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white/60 px-4 py-3 shadow-sm shadow-slate-200/50 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-black/20">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-sm font-black text-white shadow-lg shadow-sky-200/60 dark:from-cyan-400 dark:to-violet-600 dark:shadow-cyan-950/30">
                 {userName.charAt(0).toUpperCase()}
               </div>
-              <span className="truncate text-[15px] font-bold text-sky-100">{userName}</span>
+              <span className="truncate text-[15px] font-bold text-slate-700 dark:text-sky-100">{userName}</span>
             </div>
           )}
+          <ThemeButton theme={theme} onToggle={toggleTheme} />
           <LogoutButton />
         </div>
       </aside>
