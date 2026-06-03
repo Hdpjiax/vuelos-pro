@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Headphones, X, Send, MoreHorizontal, Phone, Mail, Minimize2, MessageCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { sendSupportMessageAction } from '@/lib/actions/support-chat';
-
+type SupabaseRow = Msg & { [key: string]: unknown };
 type Msg = {
     id: string;
     message: string;
@@ -37,8 +37,8 @@ export function SupportChat({ userId, userName }: { userId: string; userName?: s
             .eq('user_id', userId)
             .order('created_at', { ascending: true })
             .limit(100)
-            .then(({ data }) => {
-                setMessages((data as Msg[]) ?? []);
+            .then(({ data }: { data: Msg[] | null }) => {
+                setMessages(data ?? []);
                 setLoading(false);
             });
     }, [open, userId, supabase]);
@@ -52,7 +52,7 @@ export function SupportChat({ userId, userName }: { userId: string; userName?: s
                 schema: 'public',
                 table: 'support_messages',
                 filter: `user_id=eq.${userId}`,
-            }, (payload) => {
+            }, (payload: { new: Msg }) => {
                 const msg = payload.new as Msg;
                 setMessages((cur) => cur.find((m) => m.id === msg.id) ? cur : [...cur, msg]);
             })

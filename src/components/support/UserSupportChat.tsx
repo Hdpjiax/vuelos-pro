@@ -12,7 +12,7 @@ type Msg = {
   created_at: string;
   profiles?: { full_name?: string | null; email?: string | null } | null;
 };
-
+type SupabaseRow = Msg & { [key: string]: unknown };
 function mergeIncoming(cur: Msg[], incoming: Msg[]): Msg[] {
   const ids = new Set(cur.map((m) => m.id));
   const newOnes = incoming.filter((m) => !ids.has(m.id));
@@ -45,7 +45,7 @@ export function UserSupportChat({ initial, userId }: { initial: Msg[]; userId: s
         schema: 'public',
         table: 'support_messages',
         filter: `user_id=eq.${userId}`,
-      }, (payload) => {
+      }, (payload: { new: Msg }) => {
         setMessages((cur) => mergeIncoming(cur, [payload.new as Msg]));
       })
       .subscribe();
@@ -55,7 +55,7 @@ export function UserSupportChat({ initial, userId }: { initial: Msg[]; userId: s
   // Polling fallback cada 4s
   useEffect(() => {
     const interval = setInterval(async () => {
-      const { data } = await supabase
+      const { data }: { data: Msg[] | null } = await supabase
         .from('support_messages')
         .select('id, message, sender_id, created_at, profiles:sender_id(full_name, email)')
         .eq('user_id', userId)
