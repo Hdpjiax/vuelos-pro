@@ -5,6 +5,8 @@ import { Plane, ArrowLeftRight, Users, Search, Calendar, Loader2, Armchair, Baby
 
 type Airport = {
   iataCode: string;
+  skyId?: string;
+  entityId?: string;
   name: string;
   detailedName?: string;
   address?: { cityName?: string; countryName?: string; countryCode?: string };
@@ -12,8 +14,10 @@ type Airport = {
 
 export type FlightSearchParams = {
   origin: string;
+  originEntityId?: string;
   originLabel: string;
   destination: string;
+  destinationEntityId?: string;
   destinationLabel: string;
   departureDate: string;
   returnDate?: string;
@@ -28,13 +32,13 @@ type Props = { onSearch: (p: FlightSearchParams) => void; loading: boolean };
 
 function airportLabel(a: Airport) {
   const city = a.address?.cityName || a.detailedName || a.name;
-  return `${a.iataCode} — ${city}`;
+  return `${a.skyId || a.iataCode} — ${city}`;
 }
 
 function AirportInput({ label, value, onChange }: {
   label: string;
-  value: { code: string; label: string };
-  onChange: (v: { code: string; label: string }) => void;
+  value: { code: string; entityId?: string; label: string };
+  onChange: (v: { code: string; entityId?: string; label: string }) => void;
 }) {
   const [query, setQuery] = useState(value.label);
   const [results, setResults] = useState<Airport[]>([]);
@@ -57,15 +61,16 @@ function AirportInput({ label, value, onChange }: {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setQuery(e.target.value);
-    onChange({ code: "", label: e.target.value });
+    onChange({ code: "", entityId: undefined, label: e.target.value });
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => search(e.target.value), 300);
   }
 
   function select(a: Airport) {
+    const code = a.skyId || a.iataCode;
     const labelText = airportLabel(a);
     setQuery(labelText);
-    onChange({ code: a.iataCode, label: labelText });
+    onChange({ code, entityId: a.entityId, label: labelText });
     setResults([]);
     setOpen(false);
   }
@@ -90,12 +95,12 @@ function AirportInput({ label, value, onChange }: {
         <div className="absolute left-0 top-full z-50 mt-1 max-h-80 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
           {results.map((a, index) => (
             <button
-              key={`${a.iataCode}-${a.name}-${index}`}
+              key={`${a.skyId || a.iataCode}-${a.entityId || index}`}
               type="button"
               onMouseDown={() => select(a)}
               className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-sky-50"
             >
-              <span className="shrink-0 rounded-lg bg-sky-100 px-2 py-0.5 text-xs font-black text-sky-700">{a.iataCode}</span>
+              <span className="shrink-0 rounded-lg bg-sky-100 px-2 py-0.5 text-xs font-black text-sky-700">{a.skyId || a.iataCode}</span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-slate-900">{a.address?.cityName || a.detailedName || a.name}</p>
                 <p className="truncate text-xs text-slate-500">{a.name}{a.address?.countryCode ? ` · ${a.address.countryCode}` : ""}</p>
@@ -109,8 +114,8 @@ function AirportInput({ label, value, onChange }: {
 }
 
 export function FlightSearchForm({ onSearch, loading }: Props) {
-  const [origin, setOrigin] = useState({ code: "", label: "" });
-  const [destination, setDestination] = useState({ code: "", label: "" });
+  const [origin, setOrigin] = useState({ code: "", entityId: undefined as string | undefined, label: "" });
+  const [destination, setDestination] = useState({ code: "", entityId: undefined as string | undefined, label: "" });
   const [departureDate, setDepartureDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [adults, setAdults] = useState(1);
@@ -131,8 +136,10 @@ export function FlightSearchForm({ onSearch, loading }: Props) {
     if (!origin.code || !destination.code || !departureDate || origin.code === destination.code) return;
     onSearch({
       origin: origin.code,
+      originEntityId: origin.entityId,
       originLabel: origin.label,
       destination: destination.code,
+      destinationEntityId: destination.entityId,
       destinationLabel: destination.label,
       departureDate,
       returnDate: tripType === "round" && returnDate ? returnDate : undefined,
