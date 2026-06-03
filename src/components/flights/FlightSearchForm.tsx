@@ -37,6 +37,11 @@ function airportLabel(a: Airport) {
   return `${a.skyId || a.iataCode} — ${city}`;
 }
 
+function getManualAirportCode(value: string) {
+  const code = value.trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(code) ? code : "";
+}
+
 function AirportInput({ label, value, onChange }: {
   label: string;
   value: AirportValue;
@@ -58,14 +63,19 @@ function AirportInput({ label, value, onChange }: {
       const json = await res.json();
       setResults(json.data ?? []);
       setOpen(true);
+    } catch {
+      setResults([]);
+      setOpen(false);
     } finally { setFetching(false); }
   }, []);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setQuery(e.target.value);
-    onChange({ code: "", entityId: undefined, label: e.target.value });
+    const nextValue = e.target.value;
+    const manualCode = getManualAirportCode(nextValue);
+    setQuery(nextValue);
+    onChange({ code: manualCode, entityId: undefined, label: nextValue });
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => search(e.target.value), 300);
+    timer.current = setTimeout(() => search(nextValue), 300);
   }
 
   function select(a: Airport) {
