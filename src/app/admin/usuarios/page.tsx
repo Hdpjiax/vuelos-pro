@@ -11,11 +11,11 @@ const roleFilters = [
   { label: "Administradores", value: "admin" },
 ];
 
+const confirmedStatuses = ["pago_confirmado", "pendiente_qr", "qr_enviado", "completado"];
+
 type PageProps = {
   searchParams: Promise<{ role?: string; q?: string }>;
 };
-
-const confirmedStatuses = ["pago_confirmado", "pendiente_qr", "qr_enviado", "completado"];
 
 export default async function AdminUsersPage({ searchParams }: PageProps) {
   const query = await searchParams;
@@ -41,12 +41,12 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   const safeUsers = users ?? [];
   const userIds = safeUsers.map((user: any) => user.id).filter(Boolean);
 
-  const { data: flightsData } = userIds.length
+  const { data: flightsData, error: flightsError } = userIds.length
     ? await supabase
         .from("flights")
-        .select("id, user_id, total_amount, payment_percentage, amount_to_pay, final_amount_to_pay, status, flight_date")
+        .select("id, user_id, total_amount, payment_percentage, amount_to_pay, status, flight_date")
         .in("user_id", userIds)
-    : { data: [] };
+    : { data: [], error: null };
 
   const flightsByUser = new Map<string, any[]>();
   for (const flight of flightsData ?? []) {
@@ -69,9 +69,9 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
         <p className="text-sm font-black uppercase tracking-[0.24em] text-sky-700">Panel administrativo</p>
         <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Usuarios</h2>
         <p className="mt-2 text-slate-500">Consulta usuarios, historial individual, vuelos enviados y total confirmado.</p>
-        {usersError ? (
+        {usersError || flightsError ? (
           <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
-            No se pudo cargar la lista de usuarios. Revisa que la cuenta actual tenga rol administrador.
+            {usersError?.message || flightsError?.message || "No se pudo cargar toda la información de usuarios."}
           </p>
         ) : null}
       </section>
