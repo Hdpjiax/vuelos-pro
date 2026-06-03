@@ -1,14 +1,14 @@
 import Link from "next/link";
-import { Activity, BarChart3, CalendarClock, CreditCard, MessageSquare, PieChart, Plane, TrendingUp, Users } from "lucide-react";
+import type { ReactNode } from "react";
+import { BarChart3, CalendarClock, CreditCard, PieChart, Plane, TrendingUp, Users } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { createClient } from "@/lib/supabase/server";
 import { buttonPrimary, buttonSecondarySmall } from "@/lib/styles";
 import { maybeNotifyUpcomingFlights } from "@/lib/flight-operations";
 import { addDaysISO, flightTypeLabel, formatCurrency, formatFlightFolio, formatDate, formatTime, getAmountToPay, getTodayISO } from "@/lib/utils";
-import type { Flight, Profile, FlightMessage } from "@/lib/types";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 type ChartItem = {
   label: string;
@@ -17,12 +17,39 @@ type ChartItem = {
   tone: string;
 };
 
+type UrgentFlight = {
+  id: string;
+  user_id: string;
+  flight_folio?: string | null;
+  flight_type?: string | null;
+  flight_date?: string | null;
+  flight_time?: string | null;
+  return_flight_date?: string | null;
+  return_flight_time?: string | null;
+  fare_type?: string | null;
+  total_amount?: number | string | null;
+  payment_percentage?: number | string | null;
+  amount_to_pay?: number | string | null;
+  status: string;
+  profiles?: { id: string; full_name?: string | null; email?: string | null } | null;
+};
+
+type LatestMessage = {
+  id: string;
+  message: string;
+  created_at: string;
+  flight_id: string;
+  sender_id: string;
+  profiles?: { id: string; full_name?: string | null; email?: string | null } | null;
+  flights?: { id: string; flight_date?: string | null } | null;
+};
+
 function percent(value: number, total: number) {
   if (!total) return 0;
   return Math.max(4, Math.round((value / total) * 100));
 }
 
-function MiniMetric({ icon, label, value, helper, tone }: { icon: React.ReactNode; label: string; value: string | number; helper: string; tone: string }) {
+function MiniMetric({ icon, label, value, helper, tone }: { icon: ReactNode; label: string; value: string | number; helper: string; tone: string }) {
   return (
     <article className="group rounded-[2rem] border border-slate-200 bg-white/90 p-5 shadow-xl shadow-slate-200/60 transition hover:-translate-y-1 hover:shadow-2xl">
       <div className="flex items-start justify-between gap-4">
@@ -117,8 +144,6 @@ function DonutCard({ title, subtitle, items }: { title: string; subtitle: string
 
 function RevenueCard({ totalCollected, pendingAmount }: { totalCollected: number; pendingAmount: number }) {
   const max = Math.max(totalCollected, pendingAmount, 1);
-  const paidPercent = percent(totalCollected, max);
-  const pendingPercent = percent(pendingAmount, max);
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
       <div className="mb-6 flex items-center justify-between gap-3">
@@ -136,7 +161,7 @@ function RevenueCard({ totalCollected, pendingAmount }: { totalCollected: number
             <span className="text-lg font-black text-emerald-600">{formatCurrency(totalCollected)}</span>
           </div>
           <div className="h-5 overflow-hidden rounded-full bg-slate-100 shadow-inner">
-            <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-500 shadow-lg" style={{ width: `${paidPercent}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-500 shadow-lg" style={{ width: `${percent(totalCollected, max)}%` }} />
           </div>
         </div>
         <div>
@@ -145,7 +170,7 @@ function RevenueCard({ totalCollected, pendingAmount }: { totalCollected: number
             <span className="text-lg font-black text-fuchsia-600">{formatCurrency(pendingAmount)}</span>
           </div>
           <div className="h-5 overflow-hidden rounded-full bg-slate-100 shadow-inner">
-            <div className="h-full rounded-full bg-gradient-to-r from-orange-400 via-fuchsia-500 to-violet-500 shadow-lg" style={{ width: `${pendingPercent}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-orange-400 via-fuchsia-500 to-violet-500 shadow-lg" style={{ width: `${percent(pendingAmount, max)}%` }} />
           </div>
         </div>
       </div>
@@ -163,16 +188,17 @@ export default async function AdminDashboardPage() {
     .select("value")
     .eq("key", "operations")
     .maybeSingle();
+
   const settings = settingsRow?.value as Record<string, unknown> | null;
-  const urgentWindowDays = Number(settings?.urgent_window_days ?? 3);
-  const urgentDays = Number.isFinite(urgentWindowDays) ? urgentWindowDays : 3;
+  const configuredDays = Number(settings?.urgent_window_days ?? 3);
+  const urgentDays = Number.isFinite(configuredDays) && configuredDays > 0 ? configuredDays : 3;
   const urgentLimit = addDaysISO(urgentDays);
 
   const [
     { count: usersCount },
     { data: paidFlights },
     { data: allFlights },
-    { data: rawUrgentFlights },
+    { data: rawUrgentFlights, error: urgentError },
     { count: pendingFlights },
     { count: paymentUploaded },
     { count: pendingQr },
@@ -187,10 +213,10 @@ export default async function AdminDashboardPage() {
       .select("id, flight_folio, user_id, flight_type, flight_date, flight_time, return_flight_date, return_flight_time, fare_type, total_amount, payment_percentage, amount_to_pay, status")
       .gte("flight_date", today)
       .lte("flight_date", urgentLimit)
-      .in("status", ["pendiente_revision", "esperando_pago", "pago_subido", "pago_confirmado", "pendiente_qr", "qr_enviado"])
+      .neq("status", "cancelado")
       .order("flight_date", { ascending: true })
       .order("flight_time", { ascending: true })
-      .limit(8),
+      .limit(12),
     supabase.from("flights").select("id", { count: "exact", head: true }).eq("status", "pendiente_revision"),
     supabase.from("flights").select("id", { count: "exact", head: true }).eq("status", "pago_subido"),
     supabase.from("flights").select("id", { count: "exact", head: true }).eq("status", "pendiente_qr"),
@@ -198,12 +224,9 @@ export default async function AdminDashboardPage() {
     supabase.from("flight_messages").select("id, message, created_at, flight_id, sender_id").order("created_at", { ascending: false }).limit(4),
   ]);
 
-  type UrgentFlight = Pick<Flight, "id" | "user_id" | "flight_folio" | "flight_type" | "flight_date" | "flight_time" | "return_flight_date" | "return_flight_time" | "fare_type" | "total_amount" | "payment_percentage" | "amount_to_pay" | "status"> & { profiles: Pick<Profile, "id" | "full_name" | "email"> | null };
-  type LatestMessage = Pick<FlightMessage, "id" | "message" | "created_at" | "flight_id" | "sender_id"> & { profiles: Pick<Profile, "id" | "full_name" | "email"> | null; flights: { id: string; flight_date: string } | null };
-
-  const urgentUserIds = (rawUrgentFlights ?? []).map((flight) => (flight as UrgentFlight).user_id).filter(Boolean);
-  const messageSenderIds = (rawLatestMessages ?? []).map((msg) => (msg as LatestMessage).sender_id).filter(Boolean);
-  const latestFlightIds = (rawLatestMessages ?? []).map((msg) => (msg as LatestMessage).flight_id).filter(Boolean);
+  const urgentUserIds = (rawUrgentFlights ?? []).map((flight: any) => flight.user_id).filter(Boolean);
+  const messageSenderIds = (rawLatestMessages ?? []).map((msg: any) => msg.sender_id).filter(Boolean);
+  const latestFlightIds = (rawLatestMessages ?? []).map((msg: any) => msg.flight_id).filter(Boolean);
 
   const [{ data: relatedProfiles }, { data: latestMessageFlights }] = await Promise.all([
     [...urgentUserIds, ...messageSenderIds].length
@@ -214,25 +237,26 @@ export default async function AdminDashboardPage() {
       : Promise.resolve({ data: [] }),
   ]);
 
-  const profileMap = new Map((relatedProfiles ?? []).map((p) => [p.id, p]));
-  const latestFlightMap = new Map((latestMessageFlights ?? []).map((f) => [f.id, f]));
+  const profileMap = new Map((relatedProfiles ?? []).map((p: any) => [p.id, p]));
+  const latestFlightMap = new Map((latestMessageFlights ?? []).map((f: any) => [f.id, f]));
 
-  const urgentFlights: UrgentFlight[] = (rawUrgentFlights ?? []).map((f) => {
-    const flight = f as UrgentFlight;
-    return { ...flight, profiles: profileMap.get(flight.user_id) ?? null };
-  });
-  void maybeNotifyUpcomingFlights(supabase, urgentFlights, urgentDays);
+  const urgentFlights: UrgentFlight[] = (rawUrgentFlights ?? []).map((flight: any) => ({
+    ...flight,
+    profiles: profileMap.get(flight.user_id) ?? null,
+  }));
 
-  const latestMessages: LatestMessage[] = (rawLatestMessages ?? []).map((msg) => ({
-    ...(msg as LatestMessage),
+  void maybeNotifyUpcomingFlights(supabase, urgentFlights as any, urgentDays);
+
+  const latestMessages: LatestMessage[] = (rawLatestMessages ?? []).map((msg: any) => ({
+    ...msg,
     profiles: profileMap.get(msg.sender_id) ?? null,
     flights: latestFlightMap.get(msg.flight_id) ?? null,
   }));
 
-  const totalCollected = (paidFlights ?? []).reduce((sum, flight) => sum + getAmountToPay(flight), 0);
+  const totalCollected = (paidFlights ?? []).reduce((sum: number, flight: any) => sum + getAmountToPay(flight), 0);
   const pendingAmount = (allFlights ?? [])
     .filter((flight: any) => !["pago_confirmado", "pendiente_qr", "qr_enviado", "completado", "cancelado"].includes(flight.status))
-    .reduce((sum, flight) => sum + getAmountToPay(flight), 0);
+    .reduce((sum: number, flight: any) => sum + getAmountToPay(flight), 0);
 
   const totalFlights = allFlights?.length ?? 0;
   const completed = (allFlights ?? []).filter((flight: any) => ["completado", "qr_enviado"].includes(flight.status)).length;
@@ -246,6 +270,7 @@ export default async function AdminDashboardPage() {
         <p className="text-sm font-black uppercase tracking-[0.24em] text-sky-700">Panel administrativo</p>
         <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">General / Estadísticas</h2>
         <p className="mt-2 max-w-3xl text-slate-500">Vista profesional de actividad, vuelos, pagos y conversaciones de la plataforma.</p>
+        {urgentError ? <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">No se pudieron cargar vuelos urgentes: {urgentError.message}</p> : null}
       </section>
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
@@ -295,16 +320,16 @@ export default async function AdminDashboardPage() {
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-xl font-black text-slate-950">Vuelos urgentes</h3>
-              <p className="text-sm text-slate-500">Vuelos enviados por usuarios con fecha entre hoy y el rango configurado.</p>
+              <p className="text-sm text-slate-500">Vuelos no cancelados con fecha entre hoy y el rango configurado.</p>
             </div>
             <Link href="/admin/vuelos?urgentes=1" className={buttonPrimary}>Ver urgentes</Link>
           </div>
 
-          {!urgentFlights?.length ? (
+          {!urgentFlights.length ? (
             <EmptyState title="No hay vuelos urgentes por ahora." description="Cuando los usuarios suban vuelos cercanos, aparecerán aquí." />
           ) : (
-            <div className="w-full overflow-hidden rounded-3xl border border-slate-200">
-              <table className="w-full border-collapse bg-white text-sm">
+            <div className="w-full overflow-x-auto rounded-3xl border border-slate-200">
+              <table className="w-full min-w-[920px] border-collapse bg-white text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.16em] text-slate-500">
                   <tr>
                     <th className="px-5 py-4">Folio</th>
@@ -330,7 +355,7 @@ export default async function AdminDashboardPage() {
                         <p className="font-bold text-slate-900">{formatCurrency(flight.total_amount)}</p>
                         <p className="text-xs font-black text-sky-700">A pagar: {formatCurrency(getAmountToPay(flight))}</p>
                       </td>
-                      <td data-label="Estado" className="px-5 py-4"><StatusBadge status={flight.status} /></td>
+                      <td data-label="Estado" className="px-5 py-4"><StatusBadge status={flight.status as any} /></td>
                       <td data-label="Acción" className="px-5 py-4"><Link href={`/admin/vuelos/${flight.id}`} className={buttonSecondarySmall}>Abrir</Link></td>
                     </tr>
                   ))}
@@ -349,7 +374,7 @@ export default async function AdminDashboardPage() {
             <Link href="/admin/mensajes" className={buttonSecondarySmall}>Ver</Link>
           </div>
 
-          {!latestMessages?.length ? (
+          {!latestMessages.length ? (
             <EmptyState title="Aún no hay mensajes." />
           ) : (
             <div className="space-y-3 min-w-0 w-full">
@@ -359,7 +384,7 @@ export default async function AdminDashboardPage() {
                   <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">{message.message}</p>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">{formatDate(message.flights?.flight_date)}</p>
-                    <Link href={`/admin/vuelos/${message.flights?.id}`} className={buttonSecondarySmall}>Abrir</Link>
+                    <Link href={message.flights?.id ? `/admin/vuelos/${message.flights.id}` : "/admin/mensajes"} className={buttonSecondarySmall}>Abrir</Link>
                   </div>
                 </article>
               ))}
