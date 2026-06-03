@@ -55,7 +55,7 @@ export function FlightMessages({
           table: "flight_messages",
           filter: `flight_id=eq.${flightId}`,
         },
-        (payload) => {
+        (payload: { new: ChatMessage }) => {
           const msg = payload.new as ChatMessage;
           setMessages((cur) => {
             if (cur.find((m) => m.id === msg.id)) return cur;
