@@ -1,12 +1,23 @@
 "use client";
 
-import { useState, useEffect, useTransition, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
-  X, Plane, CreditCard, Tag, Save, Loader2,
-  CheckCircle2, AlertCircle, ChevronDown, Search,
-  NotebookPen, Calendar, Link as LinkIcon, GripHorizontal,
+  AlertCircle,
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  CreditCard,
+  GripHorizontal,
+  Link as LinkIcon,
+  Loader2,
+  NotebookPen,
+  Plane,
+  Save,
+  Search,
+  Tag,
+  X,
 } from "lucide-react";
-import { saveWorkspaceNoteAction, searchFlightsAction, lookupBinAction } from "@/app/admin/tools/workspace/actions";
+import { lookupBinAction, saveWorkspaceNoteAction, searchFlightsAction } from "@/app/admin/tools/workspace/actions";
 
 export type WorkspaceLabel = "aprobado" | "declinado" | "ban" | "riesgoso";
 
@@ -40,59 +51,16 @@ export interface WorkspaceNote {
 }
 
 export const LABEL_CONFIG: Record<WorkspaceLabel, { label: string; bg: string; text: string; border: string; dot: string }> = {
-  aprobado:  { label: "Aprobado",  bg: "#dcfce7", text: "#15803d", border: "#86efac", dot: "#22c55e" },
+  aprobado: { label: "Aprobado", bg: "#dcfce7", text: "#15803d", border: "#86efac", dot: "#22c55e" },
   declinado: { label: "Declinado", bg: "#fee2e2", text: "#b91c1c", border: "#fca5a5", dot: "#ef4444" },
-  ban:       { label: "Ban",       bg: "#1e1b4b", text: "#c7d2fe", border: "#4338ca", dot: "#818cf8" },
-  riesgoso:  { label: "Riesgoso",  bg: "#fff7ed", text: "#c2410c", border: "#fdba74", dot: "#f97316" },
+  ban: { label: "Ban", bg: "#1e1b4b", text: "#c7d2fe", border: "#4338ca", dot: "#818cf8" },
+  riesgoso: { label: "Riesgoso", bg: "#fff7ed", text: "#c2410c", border: "#fdba74", dot: "#f97316" },
 };
 
 const DRAFT_KEY = "vuelospro.workspace.noteDraft.v2";
 const OPEN_KEY = "vuelospro.workspace.noteDraft.open";
 const MODAL_WIDTH = 760;
 const MODAL_HEIGHT_ESTIMATE = 760;
-
-export function LabelBadge({ label }: { label: WorkspaceLabel }) {
-  const c = LABEL_CONFIG[label];
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs font-black uppercase tracking-wider"
-      style={{ backgroundColor: c.bg, color: c.text, border: `1.5px solid ${c.border}` }}
-    >
-      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.dot }} />
-      {c.label}
-    </span>
-  );
-}
-
-function formatCardDisplay(raw: string) {
-  const digits = raw.replace(/\D/g, "").slice(0, 16);
-  return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function getCenteredPos() {
-  if (typeof window === "undefined") return { x: 32, y: 32 };
-  const width = Math.min(MODAL_WIDTH, window.innerWidth - 24);
-  const height = Math.min(MODAL_HEIGHT_ESTIMATE, window.innerHeight - 24);
-  return {
-    x: Math.max(12, Math.round((window.innerWidth - width) / 2)),
-    y: Math.max(12, Math.round((window.innerHeight - height) / 2)),
-  };
-}
-
-function restorePos(value: unknown) {
-  if (!value || typeof value !== "object") return getCenteredPos();
-  const raw = value as { x?: unknown; y?: unknown };
-  const x = typeof raw.x === "number" ? raw.x : getCenteredPos().x;
-  const y = typeof raw.y === "number" ? raw.y : getCenteredPos().y;
-  return {
-    x: clamp(x, 8, Math.max(8, window.innerWidth - 80)),
-    y: clamp(y, 8, Math.max(8, window.innerHeight - 80)),
-  };
-}
 
 interface ModalProps {
   open: boolean;
@@ -114,37 +82,82 @@ type DraftState = {
   pos: { x: number; y: number };
 };
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getModalSize() {
+  if (typeof window === "undefined") return { width: MODAL_WIDTH, height: MODAL_HEIGHT_ESTIMATE };
+  return {
+    width: Math.min(MODAL_WIDTH, Math.max(320, window.innerWidth - 16)),
+    height: Math.min(MODAL_HEIGHT_ESTIMATE, Math.max(420, window.innerHeight - 16)),
+  };
+}
+
+function getCenteredPos() {
+  if (typeof window === "undefined") return { x: 16, y: 16 };
+  const { width, height } = getModalSize();
+  return {
+    x: Math.max(8, Math.round((window.innerWidth - width) / 2)),
+    y: Math.max(8, Math.round((window.innerHeight - height) / 2)),
+  };
+}
+
+function restorePos(value: unknown) {
+  const centered = getCenteredPos();
+  if (typeof window === "undefined" || !value || typeof value !== "object") return centered;
+  const raw = value as { x?: unknown; y?: unknown };
+  const { width, height } = getModalSize();
+  const x = typeof raw.x === "number" ? raw.x : centered.x;
+  const y = typeof raw.y === "number" ? raw.y : centered.y;
+  return {
+    x: clamp(x, 8, Math.max(8, window.innerWidth - width - 8)),
+    y: clamp(y, 8, Math.max(8, window.innerHeight - Math.min(height, window.innerHeight - 16) - 8)),
+  };
+}
+
+function formatCardDisplay(raw: string) {
+  const digits = raw.replace(/\D/g, "").slice(0, 16);
+  return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
+}
+
+export function LabelBadge({ label }: { label: WorkspaceLabel }) {
+  const c = LABEL_CONFIG[label];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs font-black uppercase tracking-wider"
+      style={{ backgroundColor: c.bg, color: c.text, border: `1.5px solid ${c.border}` }}
+    >
+      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.dot }} />
+      {c.label}
+    </span>
+  );
+}
+
 export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
   const [isPending, startTransition] = useTransition();
-
   const [flightQuery, setFlightQuery] = useState("");
   const [flightResults, setFlightResults] = useState<FlightOption[]>([]);
   const [selectedFlight, setSelectedFlight] = useState<FlightOption | null>(null);
   const [flightOpen, setFlightOpen] = useState(false);
   const [searching, setSearching] = useState(false);
-
   const [ccNumber, setCcNumber] = useState("");
   const [ccHolder, setCcHolder] = useState("");
   const [ccAddress, setCcAddress] = useState("");
   const [ccBank, setCcBank] = useState("");
   const [binLoading, setBinLoading] = useState(false);
   const [binInfo, setBinInfo] = useState<string | null>(null);
-
   const [chargeDate, setChargeDate] = useState("");
   const [siteUrl, setSiteUrl] = useState("");
   const [label, setLabel] = useState<WorkspaceLabel>("aprobado");
   const [content, setContent] = useState("");
-
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState("");
   const [pos, setPos] = useState(() => getCenteredPos());
   const [draftLoaded, setDraftLoaded] = useState(false);
-
   const modalRef = useRef<HTMLDivElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
   const dragging = useRef(false);
-  const frame = useRef<number | null>(null);
-  const latestPointer = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     try {
@@ -174,19 +187,7 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
 
   useEffect(() => {
     if (!draftLoaded) return;
-    const draft: DraftState = {
-      flightQuery,
-      selectedFlight,
-      ccNumber,
-      ccHolder,
-      ccAddress,
-      ccBank,
-      chargeDate,
-      siteUrl,
-      label,
-      content,
-      pos,
-    };
+    const draft: DraftState = { flightQuery, selectedFlight, ccNumber, ccHolder, ccAddress, ccBank, chargeDate, siteUrl, label, content, pos };
     window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   }, [draftLoaded, flightQuery, selectedFlight, ccNumber, ccHolder, ccAddress, ccBank, chargeDate, siteUrl, label, content, pos]);
 
@@ -202,52 +203,56 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const startDrag = useCallback((e: React.PointerEvent) => {
+  const startDrag = useCallback((e: React.MouseEvent) => {
     if (!modalRef.current) return;
     const target = e.target as HTMLElement;
     if (target.closest("button,input,textarea,a")) return;
-
     const rect = modalRef.current.getBoundingClientRect();
     dragging.current = true;
     dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    latestPointer.current = { x: e.clientX, y: e.clientY };
-    modalRef.current.setPointerCapture(e.pointerId);
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "grabbing";
     e.preventDefault();
   }, []);
 
-  const moveDrag = useCallback((e: React.PointerEvent) => {
-    if (!dragging.current || !modalRef.current) return;
-    latestPointer.current = { x: e.clientX, y: e.clientY };
-    if (frame.current) return;
-
-    frame.current = window.requestAnimationFrame(() => {
-      frame.current = null;
-      const rect = modalRef.current?.getBoundingClientRect();
-      const width = rect?.width ?? MODAL_WIDTH;
-      const height = rect?.height ?? MODAL_HEIGHT_ESTIMATE;
-      const nextX = latestPointer.current.x - dragOffset.current.x;
-      const nextY = latestPointer.current.y - dragOffset.current.y;
+  useEffect(() => {
+    function onMove(e: MouseEvent) {
+      if (!dragging.current || !modalRef.current) return;
+      const rect = modalRef.current.getBoundingClientRect();
+      const width = rect.width || getModalSize().width;
+      const height = rect.height || getModalSize().height;
+      const nextX = e.clientX - dragOffset.current.x;
+      const nextY = e.clientY - dragOffset.current.y;
       setPos({
         x: clamp(nextX, 8, Math.max(8, window.innerWidth - width - 8)),
         y: clamp(nextY, 8, Math.max(8, window.innerHeight - Math.min(height, window.innerHeight - 16) - 8)),
       });
-    });
-  }, []);
-
-  const stopDrag = useCallback((e: React.PointerEvent) => {
-    dragging.current = false;
-    if (frame.current) {
-      window.cancelAnimationFrame(frame.current);
-      frame.current = null;
     }
-    try { modalRef.current?.releasePointerCapture(e.pointerId); } catch {}
+
+    function onUp() {
+      if (!dragging.current) return;
+      dragging.current = false;
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    }
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("mouseleave", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("mouseleave", onUp);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
   }, []);
 
   useEffect(() => {
     const digits = ccNumber.replace(/\D/g, "");
     if (digits.length < 6) { setBinInfo(null); setCcBank(""); return; }
     const bin = digits.slice(0, 6);
-    const t = setTimeout(async () => {
+    const t = window.setTimeout(async () => {
       setBinLoading(true);
       const result = await lookupBinAction(bin);
       setBinLoading(false);
@@ -259,29 +264,26 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
         setCcBank("");
       }
     }, 400);
-    return () => clearTimeout(t);
+    return () => window.clearTimeout(t);
   }, [ccNumber]);
 
   useEffect(() => {
     if (flightQuery.length < 2) { setFlightResults([]); return; }
-    const t = setTimeout(async () => {
+    const t = window.setTimeout(async () => {
       setSearching(true);
       const res = await searchFlightsAction(flightQuery);
       setFlightResults(res as FlightOption[]);
       setSearching(false);
     }, 350);
-    return () => clearTimeout(t);
+    return () => window.clearTimeout(t);
   }, [flightQuery]);
 
   useEffect(() => {
     if (!selectedFlight) return;
     const f = selectedFlight;
     const paxLines = Array.isArray(f.passengers) && f.passengers.length
-      ? f.passengers.map((p, i) =>
-          `  ${i + 1}. ${p.full_name ?? "N/A"}${p.birth_date ? " | DOB: " + p.birth_date : ""}${p.document ? " | Doc: " + p.document : ""}`
-        ).join("\n")
+      ? f.passengers.map((p, i) => `  ${i + 1}. ${p.full_name ?? "N/A"}${p.birth_date ? " | DOB: " + p.birth_date : ""}${p.document ? " | Doc: " + p.document : ""}`).join("\n")
       : "  N/A";
-
     const text = [
       `Vuelo: ${f.flight_folio ?? f.id}`,
       `Tipo: ${f.flight_type ?? "sencillo"}`,
@@ -289,13 +291,12 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
       f.return_flight_date ? `Regreso: ${f.return_flight_date}` : null,
       `Tarifa: ${f.fare_type} | Total: $${f.total_amount?.toLocaleString("es-MX") ?? "N/A"} MXN`,
       `Cliente: ${f.profiles?.full_name ?? "Desconocido"} <${f.profiles?.email ?? ""}>`,
-      `Pasajeros:`,
+      "Pasajeros:",
       paxLines,
       "",
       "--- Notas del agente ---",
       "",
-    ].filter((l) => l !== null).join("\n");
-
+    ].filter(Boolean).join("\n");
     setContent((prev) => prev.trim() ? prev : text);
   }, [selectedFlight]);
 
@@ -333,7 +334,7 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
       });
       if (result.error) { setErr(result.error); return; }
       setSaved(true);
-      setTimeout(() => { onSaved(); clearDraftState(); onClose(); }, 900);
+      window.setTimeout(() => { onSaved(); clearDraftState(); onClose(); }, 900);
     });
   }
 
@@ -343,95 +344,86 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
     <div className="fixed inset-0 z-[9999]" style={{ pointerEvents: "none" }}>
       <div
         ref={modalRef}
-        className="flex max-h-[calc(100vh-1rem)] w-[min(760px,calc(100vw-1rem))] flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 text-slate-950 shadow-2xl shadow-slate-950/20 backdrop-blur-xl dark:border-cyan-400/20 dark:bg-slate-950/95 dark:text-white dark:shadow-fuchsia-950/40"
+        className="flex max-h-[calc(100vh-1rem)] w-[min(760px,calc(100vw-1rem))] flex-col overflow-hidden rounded-[2rem] border-2 border-slate-300 bg-white text-slate-950 shadow-2xl shadow-slate-950/25 dark:border-cyan-400/25 dark:bg-slate-950 dark:text-white dark:shadow-fuchsia-950/40"
         style={{ position: "fixed", left: pos.x, top: pos.y, pointerEvents: "auto" }}
       >
         <div
-          className="flex touch-none cursor-grab items-center justify-between border-b border-slate-200 bg-slate-50/90 px-6 py-4 active:cursor-grabbing dark:border-cyan-400/15 dark:bg-gradient-to-r dark:from-slate-950 dark:via-indigo-950 dark:to-fuchsia-950"
+          className="flex cursor-grab items-center justify-between border-b border-slate-300 bg-gradient-to-r from-slate-950 via-indigo-950 to-violet-950 px-6 py-4 text-white active:cursor-grabbing dark:border-cyan-400/15 dark:from-slate-950 dark:via-indigo-950 dark:to-fuchsia-950"
           style={{ userSelect: "none" }}
-          onPointerDown={startDrag}
-          onPointerMove={moveDrag}
-          onPointerUp={stopDrag}
-          onPointerCancel={stopDrag}
+          onMouseDown={startDrag}
         >
           <div className="flex min-w-0 items-center gap-3">
-            <GripHorizontal size={16} className="shrink-0 text-slate-400 dark:text-cyan-200" />
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 text-white shadow-lg shadow-violet-500/20">
+            <GripHorizontal size={16} className="shrink-0 text-cyan-100" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 text-white shadow-lg shadow-violet-500/30">
               <NotebookPen size={17} />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-base font-black text-slate-950 dark:text-white">Nueva nota — Workspace</p>
-              <p className="truncate text-xs font-semibold text-slate-500 dark:text-cyan-100/75">Arrastra desde esta barra · borrador automático activo</p>
+              <p className="truncate text-base font-black text-white">Nueva nota — Workspace</p>
+              <p className="truncate text-xs font-semibold text-cyan-100/85">Click y arrastra desde esta barra · borrador automático activo</p>
             </div>
           </div>
-          <button onClick={handleClose} className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-200 hover:text-slate-800 dark:text-cyan-100/70 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Cerrar ventana">
+          <button onClick={handleClose} className="rounded-xl p-2 text-cyan-100/80 transition hover:bg-white/10 hover:text-white" aria-label="Cerrar ventana">
             <X size={18} />
           </button>
         </div>
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5 dark:bg-[radial-gradient(circle_at_20%_0%,rgba(34,211,238,.12),transparent_35%),radial-gradient(circle_at_80%_20%,rgba(217,70,239,.16),transparent_32%)]">
+        <div className="flex-1 space-y-5 overflow-y-auto bg-white px-6 py-5 text-slate-950 dark:bg-[radial-gradient(circle_at_20%_0%,rgba(34,211,238,.12),transparent_35%),radial-gradient(circle_at_80%_20%,rgba(217,70,239,.16),transparent_32%),#020617] dark:text-white">
           <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-600 dark:text-cyan-100">
-              <Plane size={12} /> Importar vuelo (opcional)
-            </label>
+            <SectionLabel icon={<Plane size={12} />} text="Importar vuelo (opcional)" />
             <div className="relative">
-              <div className={`flex cursor-text items-center gap-2 rounded-2xl border-2 px-4 py-2.5 transition ${selectedFlight ? "border-violet-400" : "border-slate-300 dark:border-cyan-400/30"} bg-slate-50 dark:bg-white/10`}>
-                <Search size={14} className="shrink-0 text-slate-400 dark:text-cyan-200" />
+              <div className={`flex cursor-text items-center gap-2 rounded-2xl border-2 px-4 py-3 transition ${selectedFlight ? "border-violet-500" : "border-slate-400 dark:border-cyan-400/35"} bg-white shadow-sm dark:bg-white/10`}>
+                <Search size={14} className="shrink-0 text-slate-600 dark:text-cyan-200" />
                 <input
-                  className="flex-1 bg-transparent text-sm font-semibold text-slate-950 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-cyan-100/40"
+                  className="flex-1 bg-transparent text-sm font-bold text-slate-950 outline-none placeholder:text-slate-500 dark:text-white dark:placeholder:text-cyan-100/45"
                   placeholder="Buscar por folio, nombre o correo..."
                   value={flightQuery}
                   onChange={(e) => { setFlightQuery(e.target.value); setFlightOpen(true); }}
                   onFocus={() => flightQuery.length >= 2 && setFlightOpen(true)}
                 />
-                {searching ? <Loader2 size={14} className="animate-spin text-slate-400 dark:text-cyan-200" /> : <ChevronDown size={14} className="shrink-0 text-slate-400 dark:text-cyan-200" />}
+                {searching ? <Loader2 size={14} className="animate-spin text-violet-600 dark:text-cyan-200" /> : <ChevronDown size={14} className="shrink-0 text-slate-600 dark:text-cyan-200" />}
               </div>
-
               {flightOpen && flightResults.length > 0 && (
-                <div className="absolute left-0 right-0 top-full z-20 mt-2 max-h-64 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-cyan-400/20 dark:bg-slate-950">
+                <div className="absolute left-0 right-0 top-full z-20 mt-2 max-h-64 overflow-y-auto rounded-2xl border-2 border-slate-300 bg-white shadow-2xl dark:border-cyan-400/20 dark:bg-slate-950">
                   {flightResults.map((f) => {
                     const pax = Array.isArray(f.passengers) ? f.passengers : [];
                     return (
                       <button key={f.id} className="flex w-full flex-col gap-0.5 px-4 py-3 text-left transition hover:bg-violet-50 dark:hover:bg-white/10" onClick={() => { setSelectedFlight(f); setFlightQuery(f.flight_folio ?? f.id); setFlightOpen(false); }}>
                         <div className="flex items-center gap-2">
-                          <Plane size={13} className="shrink-0 text-violet-500 dark:text-cyan-300" />
+                          <Plane size={13} className="shrink-0 text-violet-600 dark:text-cyan-300" />
                           <span className="text-sm font-black text-slate-950 dark:text-white">{f.flight_folio ?? f.id}</span>
-                          <span className="ml-auto text-[11px] font-bold text-violet-600 dark:text-fuchsia-200">${f.total_amount?.toLocaleString("es-MX")} MXN</span>
+                          <span className="ml-auto text-[11px] font-black text-violet-700 dark:text-fuchsia-200">${f.total_amount?.toLocaleString("es-MX")} MXN</span>
                         </div>
-                        <p className="pl-5 text-[11px] text-slate-500 dark:text-cyan-100/70">{f.profiles?.full_name ?? "Usuario"} · {f.flight_date}{f.return_flight_date ? " → " + f.return_flight_date : ""} · {f.fare_type}</p>
-                        {pax.length > 0 && <p className="pl-5 text-[10px] text-slate-400 dark:text-cyan-100/45">Pax: {pax.map((p) => p.full_name).filter(Boolean).join(", ")}</p>}
+                        <p className="pl-5 text-[11px] font-semibold text-slate-600 dark:text-cyan-100/70">{f.profiles?.full_name ?? "Usuario"} · {f.flight_date}{f.return_flight_date ? " → " + f.return_flight_date : ""} · {f.fare_type}</p>
+                        {pax.length > 0 && <p className="pl-5 text-[10px] font-semibold text-slate-500 dark:text-cyan-100/45">Pax: {pax.map((p) => p.full_name).filter(Boolean).join(", ")}</p>}
                       </button>
                     );
                   })}
                 </div>
               )}
             </div>
-
             {selectedFlight && (
-              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 dark:border-cyan-400/20 dark:bg-cyan-400/10">
-                <Plane size={13} className="shrink-0 text-violet-600 dark:text-cyan-200" />
-                <span className="text-xs font-black text-violet-700 dark:text-cyan-100">{selectedFlight.flight_folio ?? selectedFlight.id}</span>
-                <span className="text-xs text-violet-500 dark:text-cyan-100/70">· {selectedFlight.profiles?.full_name} · {selectedFlight.flight_date}</span>
-                <button onClick={() => { setSelectedFlight(null); setFlightQuery(""); }} className="ml-auto text-violet-400 hover:text-violet-700 dark:text-cyan-100/60 dark:hover:text-white"><X size={12} /></button>
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-3 py-2 dark:border-cyan-400/20 dark:bg-cyan-400/10">
+                <Plane size={13} className="shrink-0 text-violet-700 dark:text-cyan-200" />
+                <span className="text-xs font-black text-violet-800 dark:text-cyan-100">{selectedFlight.flight_folio ?? selectedFlight.id}</span>
+                <span className="text-xs font-bold text-violet-700 dark:text-cyan-100/70">· {selectedFlight.profiles?.full_name} · {selectedFlight.flight_date}</span>
+                <button onClick={() => { setSelectedFlight(null); setFlightQuery(""); }} className="ml-auto text-violet-600 hover:text-violet-900 dark:text-cyan-100/60 dark:hover:text-white"><X size={12} /></button>
               </div>
             )}
           </div>
 
           <div>
-            <label className="mb-2 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-600 dark:text-cyan-100">
-              <CreditCard size={12} /> Tarjeta de pago (CC) — opcional
-            </label>
+            <SectionLabel icon={<CreditCard size={12} />} text="Tarjeta de pago (CC) — opcional" />
             <div className="mb-3">
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-cyan-100/60">Número de tarjeta (16 dígitos)</p>
+              <SmallLabel text="Número de tarjeta (16 dígitos)" />
               <div className="relative">
-                <input value={formatCardDisplay(ccNumber)} onChange={(e) => setCcNumber(e.target.value.replace(/\D/g, "").slice(0, 16))} placeholder="0000 0000 0000 0000" className="w-full rounded-xl border-2 border-slate-300 bg-slate-50 px-4 py-2.5 font-mono text-sm font-bold tracking-widest text-slate-950 outline-none focus:ring-2 focus:ring-violet-300 dark:border-cyan-400/25 dark:bg-white/10 dark:text-white dark:placeholder:text-cyan-100/35" inputMode="numeric" />
-                {binLoading && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-violet-400" />}
+                <input value={formatCardDisplay(ccNumber)} onChange={(e) => setCcNumber(e.target.value.replace(/\D/g, "").slice(0, 16))} placeholder="0000 0000 0000 0000" className="workspace-input font-mono tracking-widest" inputMode="numeric" />
+                {binLoading && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-violet-600" />}
               </div>
               {binInfo && (
-                <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-violet-100 bg-violet-50 px-3 py-1.5 dark:border-cyan-400/20 dark:bg-cyan-400/10">
-                  <CreditCard size={12} className="text-violet-500 dark:text-cyan-200" />
-                  <span className="text-[11px] font-black text-violet-700 dark:text-cyan-100">{binInfo}</span>
-                  {ccBank && <span className="ml-auto rounded-lg bg-violet-100 px-2 py-0.5 text-[10px] font-black text-violet-600 dark:bg-white/10 dark:text-fuchsia-100">{ccBank}</span>}
+                <div className="mt-2 flex items-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-3 py-2 dark:border-cyan-400/20 dark:bg-cyan-400/10">
+                  <CreditCard size={12} className="text-violet-700 dark:text-cyan-200" />
+                  <span className="text-[11px] font-black text-violet-800 dark:text-cyan-100">{binInfo}</span>
+                  {ccBank && <span className="ml-auto rounded-lg bg-violet-100 px-2 py-0.5 text-[10px] font-black text-violet-700 dark:bg-white/10 dark:text-fuchsia-100">{ccBank}</span>}
                 </div>
               )}
             </div>
@@ -442,62 +434,117 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-600 dark:text-cyan-100"><Calendar size={12} /> Fecha del cargo</label>
-              <input type="date" value={chargeDate} onChange={(e) => setChargeDate(e.target.value)} className="w-full rounded-xl border-2 border-slate-300 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-violet-300 dark:border-cyan-400/25 dark:bg-white/10 dark:text-white" />
-            </div>
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-600 dark:text-cyan-100"><LinkIcon size={12} /> Sitio / URL</label>
-              <input type="url" value={siteUrl} onChange={(e) => setSiteUrl(e.target.value)} placeholder="https://" className="w-full rounded-xl border-2 border-slate-300 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-violet-300 dark:border-cyan-400/25 dark:bg-white/10 dark:text-white dark:placeholder:text-cyan-100/35" />
-            </div>
+            <DateField label="Fecha del cargo" value={chargeDate} onChange={setChargeDate} />
+            <UrlField value={siteUrl} onChange={setSiteUrl} />
           </div>
 
           <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-600 dark:text-cyan-100"><Tag size={12} /> Etiqueta</label>
+            <SectionLabel icon={<Tag size={12} />} text="Etiqueta" />
             <div className="flex flex-wrap gap-2">
               {(Object.entries(LABEL_CONFIG) as [WorkspaceLabel, typeof LABEL_CONFIG[WorkspaceLabel]][]).map(([key, cfg]) => (
-                <button key={key} onClick={() => setLabel(key)} className="flex items-center gap-1.5 rounded-2xl border-2 px-4 py-2 text-xs font-black uppercase tracking-wider transition-all hover:-translate-y-0.5" style={{ backgroundColor: label === key ? cfg.bg : "transparent", color: label === key ? cfg.text : undefined, borderColor: label === key ? cfg.border : "rgba(148,163,184,.45)", transform: label === key ? "scale(1.03)" : "scale(1)" }}>
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: label === key ? cfg.dot : "#94a3b8" }} />
-                  <span className={label === key ? "" : "text-slate-500 dark:text-cyan-100/65"}>{cfg.label}</span>
+                <button key={key} onClick={() => setLabel(key)} className="flex items-center gap-1.5 rounded-2xl border-2 px-4 py-2 text-xs font-black uppercase tracking-wider transition-all hover:-translate-y-0.5" style={{ backgroundColor: label === key ? cfg.bg : "#ffffff", color: label === key ? cfg.text : "#334155", borderColor: label === key ? cfg.border : "#cbd5e1", transform: label === key ? "scale(1.03)" : "scale(1)" }}>
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: label === key ? cfg.dot : "#64748b" }} />
+                  {cfg.label}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-600 dark:text-cyan-100"><NotebookPen size={12} /> Contenido de la nota</label>
-            <textarea rows={10} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Escribe aquí los detalles del caso..." className="w-full resize-y rounded-2xl border-2 border-slate-300 bg-slate-50 p-4 font-mono text-sm leading-relaxed text-slate-950 outline-none focus:ring-2 focus:ring-violet-300 dark:border-cyan-400/25 dark:bg-white/10 dark:text-white dark:placeholder:text-cyan-100/35" style={{ minHeight: 170 }} />
-            <p className="mt-1 text-right text-[11px] font-medium text-slate-400 dark:text-cyan-100/50">{content.length} caracteres · guardado automático local</p>
+            <SectionLabel icon={<NotebookPen size={12} />} text="Contenido de la nota" />
+            <textarea rows={10} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Escribe aquí los detalles del caso..." className="workspace-input min-h-[180px] resize-y p-4 font-mono leading-relaxed" />
+            <p className="mt-1 text-right text-[11px] font-bold text-slate-600 dark:text-cyan-100/60">{content.length} caracteres · guardado automático local</p>
           </div>
 
-          {err && <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-400/30 dark:bg-red-500/10"><AlertCircle size={14} className="text-red-500" /><p className="text-xs font-bold text-red-700 dark:text-red-200">{err}</p></div>}
-          {saved && <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-400/30 dark:bg-green-500/10"><CheckCircle2 size={14} className="text-green-600" /><p className="text-xs font-black text-green-700 dark:text-green-200">Nota guardada exitosamente.</p></div>}
+          {err && <div className="flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 dark:border-red-400/30 dark:bg-red-500/10"><AlertCircle size={14} className="text-red-600" /><p className="text-xs font-bold text-red-800 dark:text-red-200">{err}</p></div>}
+          {saved && <div className="flex items-center gap-2 rounded-xl border-2 border-green-200 bg-green-50 px-4 py-3 dark:border-green-400/30 dark:bg-green-500/10"><CheckCircle2 size={14} className="text-green-700" /><p className="text-xs font-black text-green-800 dark:text-green-200">Nota guardada exitosamente.</p></div>}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/90 px-6 py-4 dark:border-cyan-400/15 dark:bg-slate-950/95">
-          <button onClick={handleClose} className="rounded-2xl border-2 border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:border-slate-400 dark:border-cyan-400/25 dark:bg-white/10 dark:text-cyan-100 dark:hover:bg-white/15">
+        <div className="flex items-center justify-between gap-3 border-t border-slate-300 bg-slate-100 px-6 py-4 dark:border-cyan-400/15 dark:bg-slate-950">
+          <button onClick={handleClose} className="rounded-2xl border-2 border-slate-400 bg-white px-5 py-2.5 text-sm font-black text-slate-800 transition hover:border-slate-600 hover:bg-slate-50 dark:border-cyan-400/25 dark:bg-white/10 dark:text-cyan-100 dark:hover:bg-white/15">
             Cerrar y conservar
           </button>
           <div className="flex items-center gap-2">
-            <button onClick={clearDraftState} className="rounded-2xl border-2 border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-black text-rose-700 transition hover:bg-rose-100 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-200">
+            <button onClick={clearDraftState} className="rounded-2xl border-2 border-rose-300 bg-rose-50 px-4 py-2.5 text-sm font-black text-rose-800 transition hover:bg-rose-100 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-200">
               Limpiar
             </button>
-            <button onClick={handleSave} disabled={isPending || !content.trim()} className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400 px-6 py-2.5 text-sm font-black text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
+            <button onClick={handleSave} disabled={isPending || !content.trim()} className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 px-6 py-2.5 text-sm font-black text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
               {isPending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
               {isPending ? "Guardando..." : "Guardar nota"}
             </button>
           </div>
         </div>
       </div>
+      <style jsx>{`
+        .workspace-input {
+          width: 100%;
+          border-radius: 0.9rem;
+          border: 2px solid #94a3b8;
+          background: #ffffff;
+          padding: 0.7rem 0.85rem;
+          color: #020617;
+          font-size: 0.875rem;
+          font-weight: 700;
+          outline: none;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+        }
+        .workspace-input::placeholder {
+          color: #64748b;
+          opacity: 1;
+        }
+        .workspace-input:focus {
+          border-color: #7c3aed;
+          box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.16);
+        }
+        :global(.dark) .workspace-input {
+          border-color: rgba(103, 232, 249, 0.35);
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+          box-shadow: none;
+        }
+        :global(.dark) .workspace-input::placeholder {
+          color: rgba(207, 250, 254, 0.45);
+        }
+        :global(.dark) .workspace-input:focus {
+          border-color: rgba(34, 211, 238, 0.75);
+          box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+        }
+      `}</style>
     </div>
   );
+}
+
+function SectionLabel({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-cyan-100">{icon}{text}</label>;
+}
+
+function SmallLabel({ text }: { text: string }) {
+  return <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-cyan-100/70">{text}</p>;
 }
 
 function Field({ label, value, onChange, placeholder, maxLength }: { label: string; value: string; onChange: (value: string) => void; placeholder: string; maxLength: number }) {
   return (
     <div>
-      <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-cyan-100/60">{label}</p>
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} className="w-full rounded-xl border-2 border-slate-300 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-950 outline-none focus:ring-2 focus:ring-violet-300 dark:border-cyan-400/25 dark:bg-white/10 dark:text-white dark:placeholder:text-cyan-100/35" />
+      <SmallLabel text={label} />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} className="workspace-input" />
+    </div>
+  );
+}
+
+function DateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <div>
+      <SectionLabel icon={<Calendar size={12} />} text={label} />
+      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} className="workspace-input" />
+    </div>
+  );
+}
+
+function UrlField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <div>
+      <SectionLabel icon={<LinkIcon size={12} />} text="Sitio / URL" />
+      <input type="url" value={value} onChange={(e) => onChange(e.target.value)} placeholder="https://" className="workspace-input" />
     </div>
   );
 }
