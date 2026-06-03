@@ -62,7 +62,7 @@ export async function registerAction(
   // Enviar correo de bienvenida (sin bloquear el registro si falla)
   try {
     await resend.emails.send({
-      from: 'VuelosPro <noreply@tudominio.com>',
+      from: 'VuelosPro <garia350@vuelos-gn.com>',
       to: email,
       subject: '¡Bienvenido a VuelosPro! ✈️',
       react: WelcomeEmail({ fullName }),
