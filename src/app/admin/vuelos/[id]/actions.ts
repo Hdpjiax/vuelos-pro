@@ -5,27 +5,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { slugFileName } from "@/lib/storage";
 import { buildStatusNotification, logFlightAction, notifyUser } from "@/lib/flight-operations";
-import type { FlightStatus } from "@/lib/types";
-import { updateFlightStatusSchema, sendBankAccountSchema, internalNoteSchema, updateFinancialsSchema } from "@/lib/schemas";
-const allowedStatuses = new Set([
-  "pendiente_revision",
-  "esperando_pago",
-  "pago_subido",
-  "pago_confirmado",
-  "pendiente_qr",
-  "qr_enviado",
-  "completado",
-  "cancelado",
-]);
+import { updateFlightStatusSchema, sendBankAccountSchema, updateFinancialsSchema } from "@/lib/schemas";
 
 function cleanText(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
-}
-
-function cleanPercent(value: FormDataEntryValue | null) {
-  const raw = cleanText(value).replace(/,/g, ".");
-  const number = Number(raw);
-  return Number.isFinite(number) ? number : NaN;
 }
 
 function cleanMoney(value: FormDataEntryValue | null) {
@@ -33,11 +16,6 @@ function cleanMoney(value: FormDataEntryValue | null) {
   const number = Number(raw);
   if (!Number.isFinite(number) || number < 0) return 0;
   return Math.round(number * 100) / 100;
-}
-
-function cleanFinancialStatus(value: FormDataEntryValue | null) {
-  const status = cleanText(value);
-  return ["pendiente", "revisar", "liquidado"].includes(status) ? status : "pendiente";
 }
 
 function formatMXN(value: number | string | null | undefined) {
@@ -102,8 +80,6 @@ function revalidateFlight(flightId: string) {
 
 export async function updateFlightStatusAction(formData: FormData) {
   const supabase = await createClient();
-
-  // ✅ Zod valida y tipifica de una vez
   const parsed = updateFlightStatusSchema.safeParse({
     flight_id: formData.get("flight_id"),
     status: formData.get("status"),
@@ -112,7 +88,6 @@ export async function updateFlightStatusAction(formData: FormData) {
   if (!parsed.success) redirect("/admin/vuelos");
 
   const { flight_id: flightId, status: nextStatus } = parsed.data;
-
   const admin = await getCurrentAdmin(supabase);
   if (!admin) redirect("/login");
 
@@ -155,7 +130,6 @@ export async function updateFlightStatusAction(formData: FormData) {
 
 export async function sendBankAccountAction(formData: FormData) {
   const supabase = await createClient();
-
   const parsed = sendBankAccountSchema.safeParse({
     flight_id: formData.get("flight_id"),
     bank_account_id: formData.get("bank_account_id"),
@@ -166,7 +140,6 @@ export async function sendBankAccountAction(formData: FormData) {
   if (!parsed.success) redirect("/admin/vuelos");
 
   const { flight_id: flightId, bank_account_id: bankAccountId, payment_percentage: paymentPercentage, note } = parsed.data;
-
   const admin = await getCurrentAdmin(supabase);
   if (!admin) redirect("/login");
 
@@ -174,7 +147,7 @@ export async function sendBankAccountAction(formData: FormData) {
   if (!flight) redirect("/admin/vuelos");
 
   const totalAmount = Number(flight.total_amount ?? 0);
-  const amountToPay = Math.round((totalAmount * paymentPercentage / 100) * 100) / 100;
+  const amountToPay = Math.round(((totalAmount * paymentPercentage) / 100) * 100) / 100;
   const discountAmount = Math.max(0, totalAmount - amountToPay);
 
   const { data: bankAccount } = await supabase
@@ -194,7 +167,7 @@ export async function sendBankAccountAction(formData: FormData) {
     `CLABE: ${bankAccount.clabe}`,
     `Total original: ${formatMXN(totalAmount)}`,
     `Porcentaje autorizado: ${paymentPercentage}%`,
-    discountAmount > 0 ? `Descuento aplicado: ${formatMXN(discountAmount)}` : "",
+    `Descuento aplicado: ${formatMXN(discountAmount)}`,
     `Total a depositar: ${formatMXN(amountToPay)}`,
     note ? `Nota: ${note}` : "",
     "Despues de pagar, sube tu comprobante desde el detalle del vuelo.",
@@ -208,11 +181,14 @@ export async function sendBankAccountAction(formData: FormData) {
     message_type: "cuenta_bancaria",
   });
 
-  await supabase.from("flights").update({
-    status: "esperando_pago",
-    payment_percentage: paymentPercentage,
-    amount_to_pay: amountToPay,
-  }).eq("id", flightId);
+  await supabase
+    .from("flights")
+    .update({
+      status: "esperando_pago",
+      payment_percentage: paymentPercentage,
+      amount_to_pay: amountToPay,
+    })
+    .eq("id", flightId);
 
   await notifyUser(supabase, {
     user_id: flight.user_id,
@@ -250,13 +226,11 @@ export async function confirmPaymentAction(formData: FormData) {
     .update({ status: "pendiente_qr" })
     .eq("id", flightId);
 
-  const message = "Pago confirmado. El vuelo queda pendiente por enviar QR.";
-
   await supabase.from("flight_messages").insert({
     flight_id: flightId,
     sender_id: admin.id,
     receiver_id: flight.user_id,
-    message,
+    message: "Pago confirmado. El vuelo queda pendiente por enviar QR.",
     message_type: "pago_confirmado",
   });
 
@@ -275,7 +249,7 @@ export async function confirmPaymentAction(formData: FormData) {
   });
 
   revalidateFlight(flightId);
-  redirect(`/admin/pagos/${flightId}`);
+  redirect(`/admin/vuelos/${flightId}`);
 }
 
 export async function uploadQrAction(formData: FormData) {
@@ -415,7 +389,6 @@ export async function addInternalNoteAction(formData: FormData) {
 
 export async function updateFinancialsAction(formData: FormData) {
   const supabase = await createClient();
-
   const parsed = updateFinancialsSchema.safeParse({
     flight_id: formData.get("flight_id"),
     provider_cost_amount: formData.get("provider_cost_amount"),
@@ -431,15 +404,17 @@ export async function updateFinancialsAction(formData: FormData) {
   const { flight_id: flightId, provider_cost_amount, admin_commission_amount, financial_status } = parsed.data;
   const providerCost = cleanMoney(String(provider_cost_amount));
   const adminCommission = cleanMoney(String(admin_commission_amount));
-
   const profit = Math.round((adminCommission - providerCost) * 100) / 100;
 
-  await supabase.from("flights").update({
-    provider_cost_amount: providerCost,
-    admin_commission_amount: adminCommission,
-    profit_amount: profit,
-    financial_status,
-  }).eq("id", flightId);
+  await supabase
+    .from("flights")
+    .update({
+      provider_cost_amount: providerCost,
+      admin_commission_amount: adminCommission,
+      profit_amount: profit,
+      financial_status,
+    })
+    .eq("id", flightId);
 
   await supabase.from("audit_logs").insert({
     user_id: admin.id,
