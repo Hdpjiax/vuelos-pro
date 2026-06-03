@@ -240,7 +240,7 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
 
   const modalStyle: React.CSSProperties = pos
     ? { position: "fixed", left: pos.x, top: pos.y, transform: "none", maxHeight: "82vh" }
-    : { position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)", maxHeight: "82vh" };
+    : { position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -20%)", maxHeight: "80vh" };
 
   return (
     <div className="fixed inset-0 z-50" style={{ pointerEvents: "none" }}>
