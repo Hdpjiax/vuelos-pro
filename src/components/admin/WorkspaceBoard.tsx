@@ -189,7 +189,7 @@ function NoteCard({ note, flightObj, onDelete, maskCard }: {
 
   return (
     <div className="flex flex-col rounded-3xl border-2 shadow-md transition-all hover:shadow-lg" style={{ backgroundColor: "#ffffff", borderColor: cfg.border }}>
-      <div className="flex items-center justify-between rounded-t-[22px] px-4 py-2" style={{ backgroundColor: "#eeff00" }}>
+      <div className="flex items-center justify-between rounded-t-[22px] px-4 py-2" style={{ backgroundColor: "#ffffff" }}>
         <LabelBadge label={note.label} />
         <button onClick={() => onDelete(note.id)} className="rounded-lg p-1.5 hover:bg-red-100 hover:text-red-600" style={{ color: cfg.text }}>
           <Trash2 size={13} />
