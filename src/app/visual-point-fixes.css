@@ -178,6 +178,7 @@ html.dark select,
 html.dark textarea {
   background: linear-gradient(135deg, rgba(15, 23, 42, 0.86), rgba(36, 17, 61, 0.58)) !important;
   border-color: rgba(168, 85, 247, 0.25) !important;
+  color: #f8fafc !important;
 }
 
 html.dark input:focus,
@@ -185,4 +186,55 @@ html.dark select:focus,
 html.dark textarea:focus {
   border-color: rgba(251, 191, 36, 0.42) !important;
   box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.14) !important;
+}
+
+/* Selects: opciones legibles en tema oscuro y claro */
+select {
+  color: #0f172a !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  color-scheme: light;
+}
+
+select option,
+select optgroup {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+select option:checked,
+select option:hover,
+select option:focus {
+  background-color: #e0f2fe !important;
+  color: #075985 !important;
+}
+
+html.dark select {
+  color: #ffffff !important;
+  background-color: #111827 !important;
+  background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(45, 18, 70, 0.88)) !important;
+  border-color: rgba(251, 191, 36, 0.32) !important;
+  color-scheme: dark;
+  caret-color: #fbbf24;
+}
+
+html.dark select option,
+html.dark select optgroup {
+  background-color: #111827 !important;
+  color: #f8fafc !important;
+}
+
+html.dark select option:checked,
+html.dark select option:hover,
+html.dark select option:focus {
+  background-color: #7c2d12 !important;
+  color: #ffffff !important;
+}
+
+html.dark select option:disabled {
+  background-color: #1f2937 !important;
+  color: #94a3b8 !important;
+}
+
+html.dark select::-ms-expand {
+  color: #fbbf24;
 }
