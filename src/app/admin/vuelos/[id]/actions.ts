@@ -187,15 +187,17 @@ export async function sendBankAccountAction(formData: FormData) {
   if (!bankAccount) redirect(`/admin/vuelos/${flightId}`);
 
   const message = [
-    "Cuenta bancaria para realizar el deposito:",
-    `Banco: ${bankAccount.bank_name}`,
+    "DATOS PARA DEPOSITO",
+    "Admin ya reviso tu vuelo. Usa los siguientes datos para realizar tu pago:",
     `Titular: ${bankAccount.account_holder}`,
+    `Banco: ${bankAccount.bank_name}`,
     `CLABE: ${bankAccount.clabe}`,
-    `Total original del vuelo: ${formatMXN(totalAmount)}`,
-    `Porcentaje a pagar autorizado: ${paymentPercentage}%`,
+    `Total original: ${formatMXN(totalAmount)}`,
+    `Porcentaje autorizado: ${paymentPercentage}%`,
     discountAmount > 0 ? `Descuento aplicado: ${formatMXN(discountAmount)}` : "",
     `Total a depositar: ${formatMXN(amountToPay)}`,
     note ? `Nota: ${note}` : "",
+    "Despues de pagar, sube tu comprobante desde el detalle del vuelo.",
   ].filter(Boolean).join("\n");
 
   await supabase.from("flight_messages").insert({
@@ -262,24 +264,23 @@ export async function confirmPaymentAction(formData: FormData) {
     user_id: flight.user_id,
     flight_id: flightId,
     title: "Pago confirmado",
-    body: "Administracion confirmo tu pago. Ahora preparara los QR del vuelo.",
+    body: "Tu comprobante fue validado. Estamos preparando tus QR.",
   });
 
   await logFlightAction(supabase, {
     user_id: admin.id,
-    action: "payment_confirmed",
+    action: "flight_status_changed",
     flight_id: flightId,
-    metadata: {},
+    metadata: { status: "pendiente_qr" },
   });
 
   revalidateFlight(flightId);
-  redirect(`/admin/vuelos/${flightId}`);
+  redirect(`/admin/pagos/${flightId}`);
 }
 
 export async function uploadQrAction(formData: FormData) {
   const supabase = await createClient();
   const flightId = cleanText(formData.get("flight_id"));
-  const files = formData.getAll("qr_files").filter((item): item is File => item instanceof File && item.size > 0);
 
   if (!flightId) redirect("/admin/vuelos");
 
@@ -289,206 +290,107 @@ export async function uploadQrAction(formData: FormData) {
   const flight = await getFlight(supabase, flightId);
   if (!flight) redirect("/admin/vuelos");
 
-  if (!files.length) redirect(`/admin/vuelos/${flightId}`);
+  const qrFile = formData.get("qr_file");
+  if (!(qrFile instanceof File) || qrFile.size === 0) redirect(`/admin/vuelos/${flightId}`);
 
-  const maxSize = 8 * 1024 * 1024;
-  const uploadedPaths: string[] = [];
+  const path = `${flight.user_id}/${flightId}/qr-${Date.now()}-${slugFileName(qrFile.name)}`;
+  const { error: uploadError } = await supabase.storage.from("flight-files").upload(path, qrFile, { upsert: true });
+  if (uploadError) redirect(`/admin/vuelos/${flightId}`);
 
-  for (const file of files) {
-    if (!file.type.startsWith("image/")) continue;
-    if (file.size > maxSize) continue;
+  await supabase.from("flight_files").insert({
+    flight_id: flightId,
+    user_id: flight.user_id,
+    file_type: "qr",
+    file_path: path,
+    original_name: qrFile.name,
+    mime_type: qrFile.type,
+    size_bytes: qrFile.size,
+  });
 
-    const filePath = `${admin.id}/flights/${flightId}/qr/${crypto.randomUUID()}-${slugFileName(file.name)}`;
-    const { error: uploadError } = await supabase.storage.from("flight-files").upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type,
-    });
+  await supabase.from("flights").update({ status: "qr_enviado" }).eq("id", flightId);
 
-    if (!uploadError) {
-      uploadedPaths.push(filePath);
-      await supabase.from("flight_attachments").insert({
-        flight_id: flightId,
-        uploaded_by: admin.id,
-        file_path: filePath,
-        file_name: file.name,
-        file_type: file.type,
-        category: "qr",
-      });
-    }
-  }
+  await supabase.from("flight_messages").insert({
+    flight_id: flightId,
+    sender_id: admin.id,
+    receiver_id: flight.user_id,
+    message: "QR enviado. Ya puedes descargarlo desde el detalle de tu vuelo.",
+    message_type: "qr_enviado",
+  });
 
-  if (uploadedPaths.length > 0) {
-    await supabase
-      .from("flights")
-      .update({ status: "qr_enviado" })
-      .eq("id", flightId);
+  await notifyUser(supabase, {
+    user_id: flight.user_id,
+    flight_id: flightId,
+    title: "QR enviado",
+    body: "Tus QR ya estan disponibles en el detalle del vuelo.",
+  });
 
-    await supabase.from("flight_messages").insert({
-      flight_id: flightId,
-      sender_id: admin.id,
-      receiver_id: flight.user_id,
-      message: `QR enviados para el vuelo. Archivos adjuntos: ${uploadedPaths.length}.`,
-      message_type: "qr_enviado",
-    });
-
-    await notifyUser(supabase, {
-      user_id: flight.user_id,
-      flight_id: flightId,
-      title: "QR enviados",
-      body: "Administracion envio los QR de tu vuelo. Revisa el detalle del vuelo.",
-    });
-
-    await supabase.from("audit_logs").insert({
-      user_id: admin.id,
-      action: "qr_uploaded",
-      entity_type: "flight",
-      entity_id: flightId,
-      metadata: { files: uploadedPaths.length },
-    });
-  }
+  await logFlightAction(supabase, {
+    user_id: admin.id,
+    action: "qr_uploaded",
+    flight_id: flightId,
+    metadata: { file_path: path },
+  });
 
   revalidateFlight(flightId);
   redirect(`/admin/vuelos/${flightId}`);
 }
-
-
-export async function updateFinancialsAction(formData: FormData) {
-  const supabase = await createClient();
-  const flightId = cleanText(formData.get("flight_id"));
-
-  if (!flightId) redirect("/admin/vuelos");
-
-  const admin = await getCurrentAdmin(supabase);
-  if (!admin) redirect("/login");
-
-  const flight = await getFlight(supabase, flightId);
-  if (!flight) redirect("/admin/vuelos");
-
-  const providerCost = cleanMoney(formData.get("provider_cost_amount"));
-  const adminCommission = cleanMoney(formData.get("admin_commission_amount"));
-  const financialStatus = cleanFinancialStatus(formData.get("financial_status"));
-  const financialNotes = cleanText(formData.get("financial_notes"));
-  const amountToPay = Number(flight.amount_to_pay ?? flight.total_amount ?? 0);
-  const profitAmount = Math.round((amountToPay - providerCost - adminCommission) * 100) / 100;
-
-  await supabase
-    .from("flights")
-    .update({
-      provider_cost_amount: providerCost,
-      admin_commission_amount: adminCommission,
-      profit_amount: profitAmount,
-      financial_status: financialStatus,
-      financial_notes: financialNotes || null,
-      financial_updated_at: new Date().toISOString(),
-      financial_updated_by: admin.id,
-    })
-    .eq("id", flightId);
-
-  await supabase.from("audit_logs").insert({
-    user_id: admin.id,
-    action: "financials_updated",
-    entity_type: "flight",
-    entity_id: flightId,
-    metadata: {
-      provider_cost_amount: providerCost,
-      admin_commission_amount: adminCommission,
-      profit_amount: profitAmount,
-      financial_status: financialStatus,
-    },
-  });
-
-  revalidateFlight(flightId);
-  revalidatePath("/admin/finanzas");
-  revalidatePath("/admin/reportes");
-  redirect(`/admin/vuelos/${flightId}?financials=1`);
-}
-
 
 export async function addInternalNoteAction(formData: FormData) {
   const supabase = await createClient();
   const flightId = cleanText(formData.get("flight_id"));
   const note = cleanText(formData.get("note"));
 
-  if (!flightId) redirect("/admin/vuelos");
+  if (!flightId || !note) redirect(`/admin/vuelos/${flightId}`);
 
   const admin = await getCurrentAdmin(supabase);
   if (!admin) redirect("/login");
-
-  const flight = await getFlight(supabase, flightId);
-  if (!flight) redirect("/admin/vuelos");
-
-  if (note.length < 3) redirect(`/admin/vuelos/${flightId}`);
 
   await supabase.from("flight_internal_notes").insert({
     flight_id: flightId,
     admin_id: admin.id,
-    note: note.slice(0, 1200),
-  });
-
-  await logFlightAction(supabase, {
-    user_id: admin.id,
-    action: "internal_note_created",
-    flight_id: flightId,
-    metadata: { preview: note.slice(0, 160) },
+    note,
   });
 
   revalidateFlight(flightId);
-  redirect(`/admin/vuelos/${flightId}?note=1`);
+  redirect(`/admin/vuelos/${flightId}`);
 }
 
-export async function uploadInternalFilesAction(formData: FormData) {
+export async function updateFinancialsAction(formData: FormData) {
   const supabase = await createClient();
-  const flightId = cleanText(formData.get("flight_id"));
-  const files = formData.getAll("internal_files").filter((item): item is File => item instanceof File && item.size > 0);
 
-  if (!flightId) redirect("/admin/vuelos");
+  const parsed = updateFinancialsSchema.safeParse({
+    flight_id: formData.get("flight_id"),
+    provider_cost_amount: formData.get("provider_cost_amount"),
+    admin_commission_amount: formData.get("admin_commission_amount"),
+    financial_status: formData.get("financial_status"),
+  });
+
+  if (!parsed.success) redirect("/admin/vuelos");
 
   const admin = await getCurrentAdmin(supabase);
   if (!admin) redirect("/login");
 
-  const flight = await getFlight(supabase, flightId);
-  if (!flight) redirect("/admin/vuelos");
+  const { flight_id: flightId, provider_cost_amount, admin_commission_amount, financial_status } = parsed.data;
+  const providerCost = cleanMoney(provider_cost_amount);
+  const adminCommission = cleanMoney(admin_commission_amount);
 
-  if (!files.length) redirect(`/admin/vuelos/${flightId}`);
+  const profit = Math.round((adminCommission - providerCost) * 100) / 100;
 
-  const maxSize = 10 * 1024 * 1024;
-  let uploaded = 0;
+  await supabase.from("flights").update({
+    provider_cost_amount: providerCost,
+    admin_commission_amount: adminCommission,
+    profit_amount: profit,
+    financial_status,
+  }).eq("id", flightId);
 
-  for (const file of files) {
-    const allowed = file.type.startsWith("image/") || file.type === "application/pdf";
-    if (!allowed || file.size > maxSize) continue;
-
-    const filePath = `${admin.id}/flights/${flightId}/internos/${crypto.randomUUID()}-${slugFileName(file.name)}`;
-    const { error: uploadError } = await supabase.storage.from("flight-files").upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type,
-    });
-
-    if (!uploadError) {
-      uploaded += 1;
-      await supabase.from("flight_attachments").insert({
-        flight_id: flightId,
-        uploaded_by: admin.id,
-        file_path: filePath,
-        file_name: file.name,
-        file_type: file.type,
-        category: "interno",
-      });
-    }
-  }
-
-  if (uploaded > 0) {
-    await logFlightAction(supabase, {
-      user_id: admin.id,
-      action: "internal_files_uploaded",
-      flight_id: flightId,
-      metadata: { files: uploaded },
-    });
-  }
+  await supabase.from("audit_logs").insert({
+    user_id: admin.id,
+    action: "flight_financials_updated",
+    entity_type: "flight",
+    entity_id: flightId,
+    metadata: { provider_cost_amount: providerCost, admin_commission_amount: adminCommission, profit_amount: profit, financial_status },
+  });
 
   revalidateFlight(flightId);
-  revalidatePath("/admin/archivos");
-  redirect(`/admin/vuelos/${flightId}?internal_files=${uploaded}`);
+  redirect(`/admin/vuelos/${flightId}`);
 }
