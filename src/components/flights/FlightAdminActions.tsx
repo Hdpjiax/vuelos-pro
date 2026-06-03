@@ -1,5 +1,3 @@
-"use client";
-
 import { CreditCard, FileCheck2, QrCode, WalletCards, XCircle } from "lucide-react";
 import { FlightProgress } from "@/components/flights/FlightProgress";
 import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
@@ -161,7 +159,7 @@ function ConfirmPaymentForm({ flightId, disabled, action }: { flightId: string; 
 
 function UploadQrForm({ flightId, disabled, action }: { flightId: string; disabled: boolean; action: (formData: FormData) => Promise<void> }) {
   return (
-    <form action={action} encType="multipart/form-data" className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
+    <form action={action} className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
       <div className="mb-4 flex items-center gap-3"><div className="rounded-2xl bg-cyan-100 p-2 text-cyan-700"><QrCode size={18} /></div><div><h4 className="font-black text-slate-950">Adjuntar QR</h4><p className="text-xs font-semibold text-slate-500">Puedes enviar varios QR/fotos.</p></div></div>
       <input type="hidden" name="flight_id" value={flightId} />
       <input className={inputClass} type="file" name="qr_files" accept="image/*,application/pdf" multiple required disabled={disabled} />
