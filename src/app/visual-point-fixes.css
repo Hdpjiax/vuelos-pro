@@ -1,0 +1,188 @@
+/* Ajustes puntuales por revisión visual: móvil claro, navegación, dark sin grises y botones visibles */
+
+/* 1. Móvil tema claro: iconos y texto visibles */
+@media (max-width: 767px) {
+  header.fixed.inset-x-0.top-0 {
+    background: linear-gradient(135deg, rgba(247, 253, 255, 0.96), rgba(226, 247, 255, 0.92)) !important;
+    border-bottom-color: rgba(14, 165, 233, 0.18) !important;
+  }
+
+  header.fixed.inset-x-0.top-0 h1 {
+    color: #0f172a !important;
+    text-shadow: none !important;
+  }
+
+  header.fixed.inset-x-0.top-0 h1 span {
+    color: #0284c7 !important;
+  }
+
+  header.fixed.inset-x-0.top-0 p {
+    color: #475569 !important;
+    opacity: 1 !important;
+  }
+
+  header.fixed.inset-x-0.top-0 button,
+  header.fixed.inset-x-0.top-0 button svg {
+    color: #0369a1 !important;
+    opacity: 1 !important;
+    stroke-width: 2.4 !important;
+  }
+
+  header.fixed.inset-x-0.top-0 button {
+    background: rgba(255, 255, 255, 0.84) !important;
+    border-color: rgba(14, 165, 233, 0.28) !important;
+    box-shadow: 0 10px 26px rgba(14, 165, 233, 0.13) !important;
+  }
+
+  .fixed.inset-x-3.top-\[72px\] {
+    background: linear-gradient(135deg, rgba(248, 253, 255, 0.98), rgba(232, 249, 255, 0.95)) !important;
+    border-color: rgba(14, 165, 233, 0.18) !important;
+  }
+
+  .fixed.inset-x-3.top-\[72px\] nav a {
+    color: #334155 !important;
+    opacity: 1 !important;
+    background: rgba(255, 255, 255, 0.88) !important;
+    border-color: rgba(148, 163, 184, 0.20) !important;
+  }
+
+  .fixed.inset-x-3.top-\[72px\] nav a svg {
+    color: #0284c7 !important;
+    opacity: 1 !important;
+    stroke-width: 2.4 !important;
+  }
+
+  .fixed.inset-x-3.top-\[72px\] nav a[aria-current="page"] {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #06b6d4, #2563eb, #7c3aed) !important;
+  }
+
+  .fixed.inset-x-3.top-\[72px\] nav a[aria-current="page"] *,
+  .fixed.inset-x-3.top-\[72px\] nav a[aria-current="page"] svg {
+    color: #ffffff !important;
+  }
+}
+
+/* 2. Etiqueta NAVEGACIÓN bajo el título */
+aside.fixed.inset-y-0.left-0 div:has(> svg) {
+  color: #075985 !important;
+}
+
+aside.fixed.inset-y-0.left-0 div:has(> svg) svg {
+  color: #0284c7 !important;
+  opacity: 1 !important;
+}
+
+aside.fixed.inset-y-0.left-0 div:has(> svg):has(+ nav) {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(224, 247, 255, 0.78)) !important;
+  border-color: rgba(14, 165, 233, 0.24) !important;
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.10) !important;
+  color: #075985 !important;
+  letter-spacing: 0.20em !important;
+}
+
+html.dark aside.fixed.inset-y-0.left-0 div:has(> svg):has(+ nav) {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.18), rgba(236, 72, 153, 0.16), rgba(139, 92, 246, 0.14)) !important;
+  border-color: rgba(251, 191, 36, 0.20) !important;
+  color: #fef3c7 !important;
+}
+
+html.dark aside.fixed.inset-y-0.left-0 div:has(> svg):has(+ nav) svg {
+  color: #fbbf24 !important;
+}
+
+/* 4. Quitar grises opacos en dark */
+html.dark .dashboard-content :where(.bg-slate-50, .bg-slate-100, .bg-gray-50, .bg-gray-100) {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.72), rgba(49, 24, 72, 0.42)) !important;
+  color: #e0f2fe !important;
+  border-color: rgba(168, 85, 247, 0.18) !important;
+}
+
+html.dark .dashboard-content :where(.bg-white, .bg-white\/90, .bg-white\/80, .bg-white\/70) {
+  background: linear-gradient(145deg, rgba(13, 22, 45, 0.84), rgba(24, 12, 45, 0.66)) !important;
+  border-color: rgba(168, 85, 247, 0.14) !important;
+}
+
+html.dark .dashboard-content :where(.border-dashed) {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.10), rgba(236, 72, 153, 0.10)) !important;
+  border-color: rgba(34, 211, 238, 0.22) !important;
+}
+
+html.dark .dashboard-content :where(.text-slate-400, .text-slate-500) {
+  color: #bae6fd !important;
+}
+
+html.dark .dashboard-content :where(.text-slate-600, .text-slate-700) {
+  color: #e0f2fe !important;
+}
+
+/* 5. Reemplazo global del azul claro en dark: botones y pills */
+html.dark :where(.bg-sky-50, .bg-sky-100, .bg-blue-50, .bg-blue-100, .bg-cyan-50, .bg-cyan-100) {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.24), rgba(236, 72, 153, 0.22), rgba(139, 92, 246, 0.18)) !important;
+  color: #ffffff !important;
+  border-color: rgba(251, 191, 36, 0.28) !important;
+}
+
+html.dark :where(.text-sky-700, .text-sky-800, .text-sky-900, .text-blue-700, .text-blue-800, .text-cyan-700, .text-cyan-800) {
+  color: #fef3c7 !important;
+}
+
+html.dark :where(.border-sky-200, .border-sky-300, .border-blue-200, .border-cyan-200) {
+  border-color: rgba(251, 191, 36, 0.30) !important;
+}
+
+html.dark :where(a, button).bg-sky-100,
+html.dark :where(a, button).bg-sky-50,
+html.dark :where(a, button).bg-blue-100,
+html.dark :where(a, button).bg-blue-50,
+html.dark :where(a, button).border-sky-300,
+html.dark :where(a, button).border-sky-200 {
+  background: linear-gradient(135deg, #f97316, #ec4899, #8b5cf6) !important;
+  color: #ffffff !important;
+  border-color: rgba(254, 243, 199, 0.35) !important;
+  box-shadow: 0 0 28px rgba(236, 72, 153, 0.22), 0 14px 34px rgba(0, 0, 0, 0.42) !important;
+}
+
+html.dark :where(a, button).bg-sky-100 *,
+html.dark :where(a, button).bg-sky-50 *,
+html.dark :where(a, button).bg-blue-100 *,
+html.dark :where(a, button).bg-blue-50 *,
+html.dark :where(a, button).border-sky-300 *,
+html.dark :where(a, button).border-sky-200 * {
+  color: #ffffff !important;
+}
+
+html.dark :where(a, button).bg-sky-100:hover,
+html.dark :where(a, button).bg-sky-50:hover,
+html.dark :where(a, button).bg-blue-100:hover,
+html.dark :where(a, button).bg-blue-50:hover,
+html.dark :where(a, button).border-sky-300:hover,
+html.dark :where(a, button).border-sky-200:hover {
+  filter: brightness(1.08) saturate(1.12) !important;
+  box-shadow: 0 0 36px rgba(236, 72, 153, 0.32), 0 18px 42px rgba(0, 0, 0, 0.50) !important;
+}
+
+/* Botones deshabilitados en dark: que no se pierdan */
+html.dark :where(button, a).disabled\:opacity-60:disabled,
+html.dark button:disabled,
+html.dark a[aria-disabled="true"] {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.42), rgba(236, 72, 153, 0.34), rgba(139, 92, 246, 0.32)) !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(251, 191, 36, 0.18) !important;
+  opacity: 0.78 !important;
+}
+
+/* Inputs y paneles internos dark con menos gris */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.86), rgba(36, 17, 61, 0.58)) !important;
+  border-color: rgba(168, 85, 247, 0.25) !important;
+}
+
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: rgba(251, 191, 36, 0.42) !important;
+  box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.14) !important;
+}
