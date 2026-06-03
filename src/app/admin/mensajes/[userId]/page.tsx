@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { MessageSquare, Plane, Headphones } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -19,6 +18,7 @@ type FlightMessageGroup = {
 
 function shortId(v?: string | null) { return v ? v.slice(0, 8).toUpperCase() : "SIN ID"; }
 function getFlight(row: any) { return Array.isArray(row?.flights) ? row.flights[0] : row?.flights; }
+function normalizeProfile(value: any) { return Array.isArray(value) ? (value[0] ?? null) : value; }
 
 export default async function AdminUserMessagesPage({ params, searchParams }: PageProps) {
   const { userId } = await params;
@@ -26,12 +26,12 @@ export default async function AdminUserMessagesPage({ params, searchParams }: Pa
   const supabase = await createClient();
 
   const [
-    { data: profile },
+    { data: profileRaw },
     { data: flightMessages },
     { data: supportMessagesRaw },
     { data: { user: adminUser } },
   ] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, email").eq("id", userId).single(),
+    supabase.from("profiles").select("id, full_name, email").eq("id", userId).maybeSingle(),
     supabase
       .from("flight_messages")
       .select("id, message, message_type, created_at, flight_id, sender_id, flights!inner(id, user_id, flight_date, flight_time, status), profiles:sender_id(full_name, email)")
@@ -47,18 +47,22 @@ export default async function AdminUserMessagesPage({ params, searchParams }: Pa
     supabase.auth.getUser(),
   ]);
 
-  if (!profile) notFound();
-
   const adminId = adminUser?.id ?? "";
   const activeTab = tab === "soporte" ? "soporte" : "vuelos";
 
-  // ✅ Fix: normalizar profiles de array → objeto
   const supportMessages = (supportMessagesRaw ?? []).map((msg: any) => ({
     ...msg,
-    profiles: Array.isArray(msg.profiles) ? (msg.profiles[0] ?? null) : msg.profiles,
+    profiles: normalizeProfile(msg.profiles),
   }));
 
-  // Agrupar mensajes de vuelos
+  const supportOwner = supportMessages.find((msg: any) => msg.sender_id === userId)?.profiles;
+  const flightOwner = (flightMessages ?? []).find((msg: any) => msg.sender_id === userId)?.profiles;
+  const profile = profileRaw ?? supportOwner ?? normalizeProfile(flightOwner) ?? {
+    id: userId,
+    full_name: `Usuario ${shortId(userId)}`,
+    email: "Sin correo registrado",
+  };
+
   const grouped = new Map<string, FlightMessageGroup>();
   for (const msg of flightMessages ?? []) {
     const flight = getFlight(msg);
@@ -82,10 +86,9 @@ export default async function AdminUserMessagesPage({ params, searchParams }: Pa
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
         <p className="text-sm font-black uppercase tracking-[0.24em] text-sky-700">Conversación con usuario</p>
         <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">{profile.full_name || "Usuario"}</h2>
-        <p className="mt-1 text-slate-500">{profile.email}</p>
+        <p className="mt-1 text-slate-500">{profile.email || "Sin correo registrado"}</p>
       </section>
 
-      {/* Tabs */}
       <div className="flex gap-2">
         <Link
           href={`/admin/mensajes/${userId}`}
@@ -109,7 +112,6 @@ export default async function AdminUserMessagesPage({ params, searchParams }: Pa
         </Link>
       </div>
 
-      {/* TAB SOPORTE */}
       {activeTab === "soporte" && (
         <AdminSupportChat
           messages={supportMessages}
@@ -119,7 +121,6 @@ export default async function AdminUserMessagesPage({ params, searchParams }: Pa
         />
       )}
 
-      {/* TAB VUELOS */}
       {activeTab === "vuelos" && (
         <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur">
           {!groups.length ? (
@@ -152,7 +153,7 @@ export default async function AdminUserMessagesPage({ params, searchParams }: Pa
                                   <span className="font-black text-slate-800">
                                     {Array.isArray(message.profiles)
                                       ? (message.profiles[0]?.full_name || message.profiles[0]?.email || "Sistema")
-                                      : (message.profiles?.full_name || message.profiles?.email || "Sistema")}:{" "}
+                                      : (message.profiles?.full_name || message.profiles?.email || "Sistema")}: {" "}
                                   </span>
                                   <span className="line-clamp-1">{message.message}</span>
                                 </div>
