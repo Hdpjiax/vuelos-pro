@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Plane, ArrowLeftRight, Users, Search, Calendar, Loader2, Armchair, Baby, Route } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
+import { Plane, ArrowLeftRight, Users, Search, Calendar, Loader2, Armchair, Baby, Route, ChevronDown, Check } from "lucide-react";
 
 type Airport = {
   iataCode: string;
@@ -31,6 +31,10 @@ export type FlightSearchParams = {
 type Props = { onSearch: (p: FlightSearchParams) => void; loading: boolean };
 
 type AirportValue = { code: string; entityId?: string; label: string };
+type ChoiceValue = string | number;
+type ChoiceOption<T extends ChoiceValue> = { value: T; label: string; helper?: string; disabled?: boolean };
+
+const MAX_PASSENGERS = 9;
 
 function airportLabel(a: Airport) {
   const city = a.address?.cityName || a.detailedName || a.name;
@@ -40,6 +44,79 @@ function airportLabel(a: Airport) {
 function getManualAirportCode(value: string) {
   const code = value.trim().toUpperCase();
   return /^[A-Z]{3}$/.test(code) ? code : "";
+}
+
+function passengerText(value: number, singular: string, plural: string) {
+  return `${value} ${value === 1 ? singular : plural}`;
+}
+
+function ChoiceDropdown<T extends ChoiceValue>({
+  label,
+  icon,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  icon?: ReactNode;
+  value: T;
+  options: ChoiceOption<T>[];
+  onChange: (value: T) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value) ?? options[0];
+
+  return (
+    <div className="relative min-w-0">
+      <label className="mb-1.5 flex items-center gap-1 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+        {icon}
+        {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 140)}
+        className="flight-custom-select flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-900 transition focus:border-sky-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-100"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="min-w-0 truncate">{selected?.label}</span>
+        <ChevronDown size={16} className={`shrink-0 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="flight-custom-select-menu absolute left-0 top-full z-[80] mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl" role="listbox">
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={String(option.value)}
+                type="button"
+                disabled={option.disabled}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  if (option.disabled) return;
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`flight-custom-select-option flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${
+                  isSelected ? "is-selected" : ""
+                } ${option.disabled ? "is-disabled cursor-not-allowed opacity-45" : "hover:bg-sky-50"}`}
+                role="option"
+                aria-selected={isSelected}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate">{option.label}</span>
+                  {option.helper ? <span className="block text-[11px] font-semibold opacity-70">{option.helper}</span> : null}
+                </span>
+                {isSelected ? <Check size={15} className="shrink-0" /> : null}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function AirportInput({ label, value, onChange }: {
@@ -104,13 +181,13 @@ function AirportInput({ label, value, onChange }: {
         {fetching && <Loader2 size={13} className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-sky-400" />}
       </div>
       {open && results.length > 0 && (
-        <div className="absolute left-0 top-full z-50 mt-1 max-h-80 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <div className="flight-custom-select-menu absolute left-0 top-full z-50 mt-1 max-h-80 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
           {results.map((a, index) => (
             <button
               key={`${a.skyId || a.iataCode}-${a.entityId || index}`}
               type="button"
               onMouseDown={() => select(a)}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-sky-50"
+              className="flight-custom-select-option flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-sky-50"
             >
               <span className="shrink-0 rounded-lg bg-sky-100 px-2 py-0.5 text-xs font-black text-sky-700">{a.skyId || a.iataCode}</span>
               <div className="min-w-0">
@@ -137,15 +214,50 @@ export function FlightSearchForm({ onSearch, loading }: Props) {
   const [nonStop, setNonStop] = useState(false);
   const [tripType, setTripType] = useState<"one" | "round">("one");
 
+  const totalPassengers = adults + children + infants;
+  const passengerLimitReached = totalPassengers >= MAX_PASSENGERS;
+
   function swap() {
     const temp = origin;
     setOrigin(destination);
     setDestination(temp);
   }
 
+  function updateAdults(value: number) {
+    setAdults(value);
+    const over = value + children + infants - MAX_PASSENGERS;
+    if (over > 0) {
+      const infantsReduction = Math.min(infants, over);
+      const remainingOver = over - infantsReduction;
+      setInfants(infants - infantsReduction);
+      if (remainingOver > 0) setChildren(Math.max(0, children - remainingOver));
+    }
+  }
+
+  function updateChildren(value: number) {
+    setChildren(value);
+    const over = adults + value + infants - MAX_PASSENGERS;
+    if (over > 0) setInfants(Math.max(0, infants - over));
+  }
+
+  function updateInfants(value: number) {
+    setInfants(value);
+  }
+
+  function numberOptions(min: number, max: number, value: number, singular: string, plural: string): ChoiceOption<number>[] {
+    return Array.from({ length: max - min + 1 }, (_, index) => {
+      const n = min + index;
+      return {
+        value: n,
+        label: singular ? passengerText(n, singular, plural) : String(n),
+        helper: n === value ? "Seleccionado" : undefined,
+      };
+    });
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!origin.code || !destination.code || !departureDate || origin.code === destination.code) return;
+    if (!origin.code || !destination.code || !departureDate || origin.code === destination.code || totalPassengers > MAX_PASSENGERS) return;
     onSearch({
       origin: origin.code,
       originEntityId: origin.entityId,
@@ -164,7 +276,10 @@ export function FlightSearchForm({ onSearch, loading }: Props) {
   }
 
   const today = new Date().toISOString().split("T")[0];
-  const disabled = !origin.code || !destination.code || !departureDate || origin.code === destination.code || loading;
+  const disabled = !origin.code || !destination.code || !departureDate || origin.code === destination.code || totalPassengers > MAX_PASSENGERS || loading;
+  const maxAdults = Math.max(1, MAX_PASSENGERS - children - infants);
+  const maxChildren = Math.max(0, MAX_PASSENGERS - adults - infants);
+  const maxInfants = Math.max(0, MAX_PASSENGERS - adults - children);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -207,42 +322,54 @@ export function FlightSearchForm({ onSearch, loading }: Props) {
             <input type="date" min={departureDate || today} value={returnDate} onChange={(e) => setReturnDate(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition focus:border-sky-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-100" />
           </div>
         )}
-        <div>
-          <label className="mb-1.5 flex items-center gap-1 text-xs font-black uppercase tracking-[0.18em] text-slate-500"><Users size={11} />Adultos</label>
-          <select value={adults} onChange={(e) => setAdults(Number(e.target.value))} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition focus:border-sky-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-100">
-            {[1,2,3,4,5,6,7,8,9].map((n) => <option key={n} value={n}>{n} adulto{n > 1 ? "s" : ""}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1.5 flex items-center gap-1 text-xs font-black uppercase tracking-[0.18em] text-slate-500"><Armchair size={11} />Cabina</label>
-          <select value={travelClass} onChange={(e) => setTravelClass(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition focus:border-sky-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-100">
-            <option value="ANY">Cualquier cabina</option>
-            <option value="ECONOMY">Económica</option>
-            <option value="PREMIUM_ECONOMY">Premium económica</option>
-            <option value="BUSINESS">Business</option>
-            <option value="FIRST">Primera clase</option>
-          </select>
-        </div>
+        <ChoiceDropdown
+          label="Adultos"
+          icon={<Users size={11} />}
+          value={adults}
+          options={numberOptions(1, maxAdults, adults, "adulto", "adultos")}
+          onChange={updateAdults}
+        />
+        <ChoiceDropdown
+          label="Cabina"
+          icon={<Armchair size={11} />}
+          value={travelClass}
+          options={[
+            { value: "ANY", label: "Cualquier cabina" },
+            { value: "ECONOMY", label: "Económica" },
+            { value: "PREMIUM_ECONOMY", label: "Premium económica" },
+            { value: "BUSINESS", label: "Business" },
+            { value: "FIRST", label: "Primera clase" },
+          ]}
+          onChange={setTravelClass}
+        />
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
-        <div>
-          <label className="mb-1.5 flex items-center gap-1 text-xs font-black uppercase tracking-[0.18em] text-slate-500"><Users size={11} />Niños</label>
-          <select value={children} onChange={(e) => setChildren(Number(e.target.value))} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition focus:border-sky-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-100">
-            {[0,1,2,3,4,5,6].map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1.5 flex items-center gap-1 text-xs font-black uppercase tracking-[0.18em] text-slate-500"><Baby size={11} />Bebés</label>
-          <select value={infants} onChange={(e) => setInfants(Number(e.target.value))} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition focus:border-sky-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-100">
-            {[0,1,2,3,4].map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </div>
+        <ChoiceDropdown
+          label="Niños"
+          icon={<Users size={11} />}
+          value={children}
+          options={numberOptions(0, maxChildren, children, "", "")}
+          onChange={updateChildren}
+        />
+        <ChoiceDropdown
+          label="Bebés"
+          icon={<Baby size={11} />}
+          value={infants}
+          options={numberOptions(0, maxInfants, infants, "", "")}
+          onChange={updateInfants}
+        />
         <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700">
           <input type="checkbox" checked={nonStop} onChange={(e) => setNonStop(e.target.checked)} className="h-4 w-4 accent-sky-600" />
           <Route size={15} className="text-sky-500" />
           Solo vuelos directos
         </label>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm font-bold text-slate-600">
+        <Users size={15} className="text-sky-500" />
+        <span>Total pasajeros: <strong className="text-slate-900">{totalPassengers}/{MAX_PASSENGERS}</strong></span>
+        {passengerLimitReached && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-black text-amber-700">Máximo alcanzado</span>}
       </div>
 
       {origin.code && destination.code && origin.code === destination.code && (
