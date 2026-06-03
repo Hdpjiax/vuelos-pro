@@ -23,31 +23,59 @@ const EMAIL_DOMAINS = [
   { domain: "msn.com",         label: "MSN",           color: "from-blue-600 to-indigo-600",   verifyUrl: "https://outlook.live.com" },
 ];
 
+// Sufijos numéricos que siempre se agregan
+const NUM_SUFFIXES = ["1", "2", "12", "123", "007", "99", "2024", "2025"];
+
 function generateEmails(input: string): string[] {
+  // Permitir letras, espacios, puntos, guiones bajos Y números
   const clean = input
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase().trim();
+    .toLowerCase()
+    .trim()
+    // conservar alfanuméricos, espacios, puntos, guiones y guiones bajos
+    .replace(/[^a-z0-9 ._-]/g, "");
+
   const parts = clean.split(/\s+/).filter(Boolean);
   if (parts.length === 0) return [];
+
   const [first = "", last = ""] = parts;
-  const patterns: string[] = [];
+  const basePatterns: string[] = [];
+
   if (first && last) {
-    patterns.push(`${first}.${last}`);
-    patterns.push(`${first}${last}`);
-    patterns.push(`${first}_${last}`);
-    patterns.push(`${last}.${first}`);
-    patterns.push(`${first}${last[0]}`);
-    patterns.push(`${first[0]}${last}`);
-    patterns.push(`${first[0]}.${last}`);
-    patterns.push(`${first}.${last[0]}`);
-  } else if (first) {
-    patterns.push(first);
-    patterns.push(`${first}1`);
-    patterns.push(`${first}2024`);
+    basePatterns.push(`${first}.${last}`);
+    basePatterns.push(`${first}${last}`);
+    basePatterns.push(`${first}_${last}`);
+    basePatterns.push(`${last}.${first}`);
+    basePatterns.push(`${first}${last[0]}`);
+    basePatterns.push(`${first[0]}${last}`);
+    basePatterns.push(`${first[0]}.${last}`);
+    basePatterns.push(`${first}.${last[0]}`);
+  } else {
+    // Solo un token (puede ya contener números)
+    basePatterns.push(first);
   }
+
+  // Generar variantes numéricas a partir de cada patrón base
+  // Si el input YA trae números en el token, igual se generan sufijos extra
+  const allPatterns: string[] = [];
+  for (const p of basePatterns) {
+    allPatterns.push(p); // sin número
+    for (const n of NUM_SUFFIXES) {
+      allPatterns.push(`${p}${n}`);
+    }
+  }
+
+  // Deduplicar manteniendo orden
+  const seen = new Set<string>();
+  const unique = allPatterns.filter((x) => {
+    if (seen.has(x)) return false;
+    seen.add(x);
+    return true;
+  });
+
   const results: string[] = [];
   for (const { domain } of EMAIL_DOMAINS) {
-    for (const pattern of patterns) {
+    for (const pattern of unique) {
       results.push(`${pattern}@${domain}`);
     }
   }
@@ -92,7 +120,7 @@ export function EmailGenerator() {
   return (
     <div className="space-y-6">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-violet-600 text-white shadow-lg">
           <Mail size={22} />
@@ -100,34 +128,35 @@ export function EmailGenerator() {
         <div>
           <h2 className="text-xl font-black text-slate-900 dark:text-white">Mail Generator</h2>
           <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-            Genera combinaciones de correos a partir de un nombre
+            Genera combinaciones de correos a partir de un nombre o número
           </p>
         </div>
       </div>
 
-      {/* ── Input card ── */}
+      {/* Input card */}
       <div
         className="rounded-3xl border-2 border-slate-300 p-5 shadow-md dark:border-white/10 dark:bg-slate-800"
         style={{ backgroundColor: "#ffffff" }}
       >
-        {/* Label */}
         <label
           htmlFor="email-gen-input"
-          className="mb-2 block text-sm font-bold dark:text-slate-200"
+          className="mb-1 block text-sm font-bold dark:text-slate-200"
           style={{ color: "#1e293b" }}
         >
           Nombre completo
         </label>
+        <p className="mb-3 text-xs font-medium" style={{ color: "#64748b" }}>
+          Puedes incluir números: <span style={{ color: "#0ea5e9" }}>"Juan Garcia 99"</span> o solo texto: <span style={{ color: "#0ea5e9" }}>"Juan Garcia"</span> — siempre se generan variantes numéricas automáticamente.
+        </p>
 
         <div className="flex gap-3">
-          {/* Input */}
           <input
             id="email-gen-input"
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-            placeholder="Ej: Juan García"
+            placeholder="Ej: Juan García  o  juan99"
             className="flex-1 rounded-2xl border-2 px-4 py-3 text-sm font-semibold shadow-sm outline-none focus:ring-2 focus:ring-sky-300 dark:border-white/10 dark:bg-slate-700 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-cyan-400"
             style={{
               backgroundColor: "#f1f5f9",
@@ -135,8 +164,6 @@ export function EmailGenerator() {
               borderColor: "#94a3b8",
             }}
           />
-
-          {/* Boton generar */}
           <button
             onClick={handleGenerate}
             className="flex shrink-0 items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-sm font-black text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
@@ -144,8 +171,6 @@ export function EmailGenerator() {
             <Sparkles size={16} />
             Generar
           </button>
-
-          {/* Boton limpiar */}
           {generated && (
             <button
               onClick={handleClear}
@@ -157,16 +182,13 @@ export function EmailGenerator() {
         </div>
 
         {generated && (
-          <p
-            className="mt-2 text-xs font-semibold dark:text-slate-400"
-            style={{ color: "#475569" }}
-          >
+          <p className="mt-2 text-xs font-semibold dark:text-slate-400" style={{ color: "#475569" }}>
             {emails.length} correos generados en {EMAIL_DOMAINS.length} dominios
           </p>
         )}
       </div>
 
-      {/* ── Resultados por dominio ── */}
+      {/* Resultados por dominio */}
       {grouped.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {grouped.map(({ domain, label, color, verifyUrl, emails: domainEmails }) => (
@@ -175,20 +197,13 @@ export function EmailGenerator() {
               className="rounded-3xl border-2 border-slate-200 p-4 shadow-md dark:border-white/10 dark:bg-slate-800"
               style={{ backgroundColor: "#ffffff" }}
             >
-              {/* Domain header */}
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className={cn("h-2.5 w-2.5 shrink-0 rounded-full bg-gradient-to-br", color)} />
-                  <span
-                    className="text-sm font-black dark:text-white"
-                    style={{ color: "#1e293b" }}
-                  >
+                  <span className="text-sm font-black dark:text-white" style={{ color: "#1e293b" }}>
                     {label}
                   </span>
-                  <span
-                    className="text-xs font-semibold dark:text-slate-400"
-                    style={{ color: "#64748b" }}
-                  >
+                  <span className="text-xs font-semibold dark:text-slate-400" style={{ color: "#64748b" }}>
                     @{domain}
                   </span>
                 </div>
@@ -202,7 +217,6 @@ export function EmailGenerator() {
                 </button>
               </div>
 
-              {/* Email rows */}
               <div className="space-y-1.5">
                 {domainEmails.map((email) => (
                   <div
@@ -242,25 +256,19 @@ export function EmailGenerator() {
         </div>
       )}
 
-      {/* ── Empty state ── */}
+      {/* Empty state */}
       {!generated && (
         <div
           className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-slate-300 py-16 text-center dark:border-white/10 dark:bg-slate-800/50"
           style={{ backgroundColor: "#f8fafc" }}
         >
           <Mail size={36} className="text-slate-400" />
-          <p
-            className="text-sm font-bold dark:text-slate-400"
-            style={{ color: "#475569" }}
-          >
+          <p className="text-sm font-bold dark:text-slate-400" style={{ color: "#475569" }}>
             Escribe un nombre y presiona{" "}
             <span className="text-sky-600 dark:text-sky-400">Generar</span>
           </p>
-          <p
-            className="text-xs font-semibold dark:text-slate-500"
-            style={{ color: "#64748b" }}
-          >
-            Genera combinaciones para {EMAIL_DOMAINS.length} dominios populares
+          <p className="text-xs font-semibold dark:text-slate-500" style={{ color: "#64748b" }}>
+            Se generan variantes con sufijos: 1, 2, 12, 123, 007, 99, 2024, 2025…
           </p>
         </div>
       )}
