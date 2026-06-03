@@ -4,6 +4,7 @@ import "./globals.css";
 import "./visual-tuning.css";
 import "./final-layout-fixes.css";
 import "./visual-point-fixes.css";
+import "./dark-contrast-final.css";
 
 export const metadata: Metadata = {
   title: "VuelosPro",
