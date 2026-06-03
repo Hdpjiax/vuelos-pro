@@ -134,6 +134,26 @@ html.dark .flight-price-card :where(p, span) {
   color: #ffffff !important;
 }
 
+/* Historial: panel de actividad reciente sin gris */
+.history-activity-panel {
+  background: linear-gradient(135deg, rgba(224, 247, 255, 0.88), rgba(245, 243, 255, 0.82)) !important;
+  border-color: rgba(14, 165, 233, 0.18) !important;
+}
+
+html.dark .history-activity-panel {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.18), rgba(139, 92, 246, 0.22), rgba(236, 72, 153, 0.16)) !important;
+  border-color: rgba(251, 191, 36, 0.26) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 14px 34px rgba(0,0,0,0.28) !important;
+}
+
+html.dark .history-activity-panel :where(p, span, div) {
+  color: #ffffff !important;
+}
+
+html.dark .history-activity-panel p:first-child {
+  color: #fef3c7 !important;
+}
+
 /* Botones claros usados en dark */
 html.dark .dashboard-content :where(button, a).bg-white,
 html.dark .dashboard-content :where(button, a).bg-slate-50,
