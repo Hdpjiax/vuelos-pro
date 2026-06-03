@@ -1,0 +1,291 @@
+/* Ajuste visual final: contención, escala, colores y microinteracciones */
+
+:root {
+  --vp-sidebar: 20rem;
+  --vp-radius-xl: 1.65rem;
+  --vp-panel-light: rgba(255, 255, 255, 0.58);
+  --vp-panel-light-strong: rgba(255, 255, 255, 0.72);
+  --vp-dark-panel: rgba(10, 18, 34, 0.78);
+  --vp-dark-panel-strong: rgba(14, 24, 46, 0.88);
+  --vp-cyan: #06b6d4;
+  --vp-blue: #2563eb;
+  --vp-violet: #8b5cf6;
+  --vp-pink: #ec4899;
+  --vp-emerald: #10b981;
+  --vp-amber: #f59e0b;
+}
+
+@media (min-width: 768px) {
+  body:has(aside.fixed.inset-y-0.left-0) .dashboard-content {
+    width: calc(100vw - var(--vp-sidebar));
+    max-width: calc(100vw - var(--vp-sidebar));
+    margin-left: 0 !important;
+    padding-left: clamp(1.4rem, 1.45vw, 2.35rem) !important;
+    padding-right: clamp(1.4rem, 1.45vw, 2.35rem) !important;
+  }
+
+  body:has(aside.fixed.inset-y-0.left-0) .dashboard-content > * {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (min-width: 1280px) {
+  html {
+    font-size: 16px !important;
+  }
+
+  .dashboard-content h1 {
+    font-size: clamp(1.55rem, 1.35vw, 2.15rem) !important;
+    letter-spacing: -0.035em;
+  }
+
+  .dashboard-content h2 {
+    font-size: clamp(1.22rem, 1.05vw, 1.62rem) !important;
+  }
+
+  .dashboard-content p,
+  .dashboard-content td,
+  .dashboard-content th,
+  .dashboard-content button,
+  .dashboard-content a,
+  .dashboard-content input,
+  .dashboard-content select,
+  .dashboard-content textarea {
+    font-size: 0.96rem !important;
+  }
+
+  .dashboard-content .text-xs {
+    font-size: 0.73rem !important;
+  }
+
+  .dashboard-content .text-sm {
+    font-size: 0.88rem !important;
+  }
+
+  .dashboard-content .text-2xl {
+    font-size: clamp(1.45rem, 1.2vw, 1.8rem) !important;
+  }
+
+  .dashboard-content .text-3xl {
+    font-size: clamp(1.85rem, 1.65vw, 2.25rem) !important;
+  }
+
+  .dashboard-content :where(section, article).rounded-\[2rem\],
+  .dashboard-content :where(section, article).rounded-3xl {
+    padding: clamp(1.05rem, 1.08vw, 1.55rem) !important;
+  }
+}
+
+@media (min-width: 1536px) {
+  html {
+    font-size: 16px !important;
+  }
+
+  .dashboard-content {
+    max-width: calc(100vw - var(--vp-sidebar)) !important;
+  }
+
+  .dashboard-content :where(.grid) {
+    gap: clamp(0.95rem, 1vw, 1.35rem) !important;
+  }
+}
+
+.dashboard-bg,
+.admin-bg {
+  background:
+    radial-gradient(circle at 11% 8%, rgba(6, 182, 212, 0.22), transparent 30rem),
+    radial-gradient(circle at 78% 3%, rgba(139, 92, 246, 0.16), transparent 32rem),
+    radial-gradient(circle at 72% 92%, rgba(16, 185, 129, 0.16), transparent 34rem),
+    linear-gradient(135deg, #edfaff 0%, #f2f6ff 44%, #f8fbff 70%, #ebfff8 100%) !important;
+}
+
+html.dark .dashboard-bg,
+html.dark .admin-bg {
+  background:
+    radial-gradient(circle at 8% 8%, rgba(6, 182, 212, 0.28), transparent 28rem),
+    radial-gradient(circle at 86% 2%, rgba(139, 92, 246, 0.28), transparent 32rem),
+    radial-gradient(circle at 92% 82%, rgba(236, 72, 153, 0.18), transparent 30rem),
+    radial-gradient(circle at 18% 82%, rgba(16, 185, 129, 0.12), transparent 25rem),
+    linear-gradient(135deg, #020617 0%, #061427 36%, #090b21 70%, #14051c 100%) !important;
+}
+
+.dashboard-content :where(section, article, div).rounded-\[2rem\],
+.dashboard-content :where(section, article).rounded-3xl {
+  max-width: 100%;
+  border-color: rgba(125, 151, 181, 0.20) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.42)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 18px 48px rgba(51, 65, 85, 0.09) !important;
+  backdrop-filter: blur(20px) saturate(1.18);
+}
+
+html.dark .dashboard-content :where(section, article, div).rounded-\[2rem\],
+html.dark .dashboard-content :where(section, article).rounded-3xl {
+  border-color: rgba(34, 211, 238, 0.14) !important;
+  background:
+    linear-gradient(145deg, rgba(17, 26, 48, 0.82), rgba(9, 14, 32, 0.70)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 18px 58px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(139, 92, 246, 0.05) !important;
+}
+
+.dashboard-content :where(section, article):hover {
+  transform: translateY(-2px) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.80),
+    0 22px 58px rgba(14, 165, 233, 0.13) !important;
+}
+
+html.dark .dashboard-content :where(section, article):hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 22px 70px rgba(0, 0, 0, 0.48),
+    0 0 42px rgba(6, 182, 212, 0.08) !important;
+}
+
+.dashboard-content .overflow-x-auto {
+  max-width: 100%;
+  overflow-x: auto !important;
+  overscroll-behavior-x: contain;
+}
+
+.dashboard-content table {
+  width: 100%;
+  max-width: 100%;
+}
+
+.dashboard-content th,
+.dashboard-content td {
+  white-space: normal;
+}
+
+.dashboard-content :where(.bg-sky-600, .bg-blue-600, .bg-cyan-500, .bg-cyan-600) {
+  background-image: linear-gradient(135deg, #06b6d4, #2563eb, #8b5cf6) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.24) !important;
+}
+
+.dashboard-content :where(.bg-sky-600, .bg-blue-600, .bg-cyan-500, .bg-cyan-600):hover {
+  filter: brightness(1.05) saturate(1.08);
+  box-shadow: 0 16px 38px rgba(6, 182, 212, 0.30) !important;
+}
+
+html.dark .dashboard-content :where(.bg-sky-600, .bg-blue-600, .bg-cyan-500, .bg-cyan-600) {
+  background-image: linear-gradient(135deg, #22d3ee, #6366f1, #ec4899) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 28px rgba(34, 211, 238, 0.16), 0 14px 34px rgba(0, 0, 0, 0.42) !important;
+}
+
+html.dark .dashboard-content :where(.bg-amber-50, .bg-yellow-50) {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(251, 191, 36, 0.12)) !important;
+  color: #fef3c7 !important;
+  border-color: rgba(251, 191, 36, 0.28) !important;
+}
+
+html.dark .dashboard-content :where(.bg-emerald-100, .bg-green-100) {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.24), rgba(20, 184, 166, 0.12)) !important;
+  color: #bbf7d0 !important;
+}
+
+html.dark .dashboard-content :where(.bg-slate-100, .bg-slate-50) {
+  background: rgba(20, 31, 55, 0.78) !important;
+}
+
+/* Sidebar visual overrides */
+aside.fixed.inset-y-0.left-0 {
+  width: var(--vp-sidebar) !important;
+  border-right-color: rgba(125, 151, 181, 0.16) !important;
+  background:
+    radial-gradient(circle at 14% 8%, rgba(34, 211, 238, 0.18), transparent 13rem),
+    radial-gradient(circle at 88% 88%, rgba(139, 92, 246, 0.16), transparent 15rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(236, 248, 255, 0.40)) !important;
+  box-shadow: 14px 0 44px rgba(51, 65, 85, 0.10) !important;
+}
+
+html.dark aside.fixed.inset-y-0.left-0 {
+  border-right-color: rgba(34, 211, 238, 0.13) !important;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(6, 182, 212, 0.22), transparent 14rem),
+    radial-gradient(circle at 92% 88%, rgba(236, 72, 153, 0.18), transparent 15rem),
+    linear-gradient(180deg, rgba(4, 12, 25, 0.92), rgba(12, 16, 38, 0.82)) !important;
+  box-shadow: 16px 0 48px rgba(0, 0, 0, 0.42) !important;
+}
+
+aside nav[aria-label="Navegación principal"] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.34rem !important;
+}
+
+aside nav[aria-label="Navegación principal"] a {
+  min-height: 3.1rem;
+  border: 1px solid transparent;
+}
+
+aside nav[aria-label="Navegación principal"] a:hover {
+  border-color: rgba(14, 165, 233, 0.22) !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.76), rgba(225, 246, 255, 0.62)) !important;
+  box-shadow: 0 14px 30px rgba(14, 165, 233, 0.14) !important;
+}
+
+html.dark aside nav[aria-label="Navegación principal"] a:hover {
+  border-color: rgba(34, 211, 238, 0.24) !important;
+  background:
+    linear-gradient(135deg, rgba(6, 182, 212, 0.16), rgba(139, 92, 246, 0.14)) !important;
+  box-shadow: 0 0 26px rgba(6, 182, 212, 0.10), 0 14px 30px rgba(0, 0, 0, 0.32) !important;
+}
+
+aside nav[aria-label="Navegación principal"] a[aria-current="page"] {
+  border-color: rgba(255, 255, 255, 0.65) !important;
+  background-image: linear-gradient(135deg, #06b6d4, #2563eb, #8b5cf6) !important;
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.26) !important;
+}
+
+html.dark aside nav[aria-label="Navegación principal"] a[aria-current="page"] {
+  background-image: linear-gradient(135deg, #22d3ee, #6366f1, #ec4899) !important;
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.17), 0 16px 34px rgba(0, 0, 0, 0.42) !important;
+}
+
+@keyframes help-pulse {
+  0%, 100% { transform: translateY(0) scale(1); box-shadow: 0 14px 34px rgba(37, 99, 235, 0.28); }
+  50% { transform: translateY(-2px) scale(1.035); box-shadow: 0 18px 44px rgba(6, 182, 212, 0.38); }
+}
+
+@keyframes float-label {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.support-help-shell {
+  left: calc(var(--vp-sidebar) + 1.35rem) !important;
+  bottom: 1.55rem !important;
+  z-index: 60 !important;
+}
+
+.support-help-label {
+  animation: float-label 2.4s ease-in-out infinite;
+}
+
+.support-help-button {
+  animation: help-pulse 2.8s ease-in-out infinite;
+}
+
+.support-help-button:hover {
+  animation-play-state: paused;
+}
+
+.support-chat-panel {
+  max-width: min(23.5rem, calc(100vw - var(--vp-sidebar) - 3rem));
+}
+
+@media (max-width: 767px) {
+  .dashboard-content {
+    width: 100vw;
+    max-width: 100vw;
+  }
+}
