@@ -28,9 +28,37 @@ function isSystem(type?: string | null) {
   return !!type && type !== "chat";
 }
 
-function getLineValue(message: string, label: string) {
-  const line = message.split("\n").find((item) => item.toLowerCase().startsWith(`${label.toLowerCase()}:`));
+function normalizeLabel(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getLineValue(message: string, labels: string | string[]) {
+  const labelList = Array.isArray(labels) ? labels : [labels];
+  const normalizedLabels = labelList.map(normalizeLabel);
+
+  const line = message.split("\n").find((item) => {
+    const normalizedLine = normalizeLabel(item);
+    return normalizedLabels.some((label) => normalizedLine.startsWith(`${label}:`));
+  });
+
   return line?.split(":").slice(1).join(":").trim() ?? "";
+}
+
+function formatClientTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleString("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "short",
+  });
 }
 
 function CopyButton({ value, label }: { value: string; label: string }) {
@@ -60,10 +88,10 @@ function BankAccountMessage({ message, time }: { message: string; time: string }
   const holder = getLineValue(message, "Titular");
   const bank = getLineValue(message, "Banco");
   const clabe = getLineValue(message, "CLABE");
-  const original = getLineValue(message, "Total original");
-  const percentage = getLineValue(message, "Porcentaje autorizado");
-  const discount = getLineValue(message, "Descuento aplicado");
-  const total = getLineValue(message, "Total a depositar");
+  const original = getLineValue(message, ["Total original", "Total original del vuelo"]);
+  const percentage = getLineValue(message, ["Porcentaje autorizado", "Porcentaje a pagar autorizado", "Porcentaje a pagar"]);
+  const discount = getLineValue(message, ["Descuento aplicado", "Descuento"]);
+  const total = getLineValue(message, ["Total a depositar", "Monto a depositar", "Total por depositar"]);
   const note = getLineValue(message, "Nota");
 
   return (
@@ -132,7 +160,7 @@ function BankAccountMessage({ message, time }: { message: string; time: string }
 
         <div className="border-t border-white/10 bg-white/5 px-5 py-3 text-center">
           <p className="text-xs font-bold text-sky-100/85">Después de pagar, sube tu comprobante desde el detalle del vuelo.</p>
-          <p className="mt-1 text-[10px] font-black text-amber-200">{time}</p>
+          <p className="mt-1 text-[10px] font-black text-amber-200">{time || "--"}</p>
         </div>
       </div>
     </div>
@@ -151,10 +179,14 @@ export function FlightMessages({
   const [messages, setMessages] = useState<ChatMessage[]>(initial);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = useMemo(() => createClient(), []);
 
-  // Realtime
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   useEffect(() => {
     const channel = supabase
       .channel(`flight-chat-${flightId}`)
@@ -179,7 +211,6 @@ export function FlightMessages({
     return () => { supabase.removeChannel(channel); };
   }, [supabase, flightId]);
 
-  // Scroll al fondo cuando llegan mensajes
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -201,13 +232,11 @@ export function FlightMessages({
 
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur overflow-hidden">
-      {/* Header */}
       <div className="border-b border-slate-100 px-6 py-5">
         <p className="text-sm font-black uppercase tracking-[0.24em] text-sky-700">Mensajes</p>
         <h3 className="mt-1 text-2xl font-black tracking-tight text-slate-950">Conversación del vuelo</h3>
       </div>
 
-      {/* Burbuja de mensajes */}
       <div className="flex h-[420px] flex-col gap-2 overflow-y-auto overscroll-contain px-5 py-4">
         {!messages.length ? (
           <div className="m-auto rounded-3xl border border-dashed border-slate-300 bg-white/70 px-8 py-6 text-center text-sm font-bold text-slate-400">
@@ -217,18 +246,12 @@ export function FlightMessages({
           messages.map((msg) => {
             const isMine = msg.sender_id === currentUserId;
             const system = isSystem(msg.message_type);
-            const time = new Date(msg.created_at).toLocaleString("es-MX", {
-              hour: "2-digit",
-              minute: "2-digit",
-              day: "2-digit",
-              month: "short",
-            });
+            const time = hydrated ? formatClientTime(msg.created_at) : "";
 
             if (msg.message_type === "cuenta_bancaria") {
               return <BankAccountMessage key={msg.id} message={msg.message} time={time} />;
             }
 
-            // Mensajes de sistema — centrados
             if (system) {
               return (
                 <div key={msg.id} className="flex justify-center py-1">
@@ -237,13 +260,12 @@ export function FlightMessages({
                       {TYPE_LABELS[msg.message_type!] ?? msg.message_type}
                     </p>
                     <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-slate-600">{msg.message}</p>
-                    <p className="mt-1.5 text-[10px] font-bold text-slate-400">{time}</p>
+                    <p className="mt-1.5 text-[10px] font-bold text-slate-400">{time || "--"}</p>
                   </div>
                 </div>
               );
             }
 
-            // Chat libre — burbuja derecha/izquierda
             return (
               <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                 <div
@@ -259,7 +281,7 @@ export function FlightMessages({
                   )}
                   <p className="whitespace-pre-wrap text-sm leading-[1.55]">{msg.message}</p>
                   <p className={`mt-1.5 text-right text-[10px] font-bold ${isMine ? "text-sky-200" : "text-slate-400"}`}>
-                    {time}
+                    {time || "--"}
                   </p>
                 </div>
               </div>
@@ -269,7 +291,6 @@ export function FlightMessages({
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
       <form
         onSubmit={handleSend}
         className="flex items-end gap-3 border-t border-slate-100 bg-white px-4 py-4"
