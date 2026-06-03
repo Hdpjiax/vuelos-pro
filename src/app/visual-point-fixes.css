@@ -188,7 +188,7 @@ html.dark textarea:focus {
   box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.14) !important;
 }
 
-/* Selects: opciones legibles en tema oscuro y claro */
+/* Selects nativos restantes */
 select {
   color: #0f172a !important;
   background-color: rgba(255, 255, 255, 0.92) !important;
@@ -237,4 +237,90 @@ html.dark select option:disabled {
 
 html.dark select::-ms-expand {
   color: #fbbf24;
+}
+
+/* Custom selects del buscador de vuelos */
+.flight-custom-select {
+  color: #0f172a !important;
+  background: rgba(248, 250, 252, 0.92) !important;
+  border-color: rgba(148, 163, 184, 0.45) !important;
+}
+
+.flight-custom-select-menu {
+  background: #ffffff !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  color: #0f172a !important;
+}
+
+.flight-custom-select-option {
+  color: #0f172a !important;
+}
+
+.flight-custom-select-option.is-selected {
+  background: linear-gradient(135deg, #e0f2fe, #ede9fe) !important;
+  color: #075985 !important;
+}
+
+html.dark .flight-custom-select {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(45, 18, 70, 0.90)) !important;
+  border-color: rgba(251, 191, 36, 0.34) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+html.dark .flight-custom-select svg {
+  color: #fbbf24 !important;
+}
+
+html.dark .flight-custom-select-menu {
+  background: linear-gradient(145deg, #0f172a, #24113d) !important;
+  border-color: rgba(251, 191, 36, 0.32) !important;
+  color: #ffffff !important;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(236, 72, 153, 0.12) !important;
+}
+
+html.dark .flight-custom-select-option {
+  color: #ffffff !important;
+}
+
+html.dark .flight-custom-select-option:hover,
+html.dark .flight-custom-select-option.is-selected {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.38), rgba(236, 72, 153, 0.34), rgba(139, 92, 246, 0.30)) !important;
+  color: #ffffff !important;
+}
+
+html.dark .flight-custom-select-option.is-disabled {
+  color: rgba(226, 232, 240, 0.50) !important;
+}
+
+/* Tarjeta de precio del resultado de vuelos */
+.flight-price-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(224, 247, 255, 0.78)) !important;
+  border-color: rgba(14, 165, 233, 0.20) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 18px 40px rgba(14, 165, 233, 0.10) !important;
+}
+
+html.dark .flight-price-card {
+  background: linear-gradient(145deg, rgba(249, 115, 22, 0.20), rgba(236, 72, 153, 0.18), rgba(139, 92, 246, 0.18)) !important;
+  border-color: rgba(251, 191, 36, 0.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 0 36px rgba(236,72,153,0.14), 0 20px 50px rgba(0,0,0,0.42) !important;
+}
+
+html.dark .flight-price-card :where(p, span) {
+  color: #ffffff !important;
+}
+
+html.dark .flight-price-card p:first-child,
+html.dark .flight-price-card p:last-child {
+  color: #fef3c7 !important;
+}
+
+/* Zonas claras/grises que quedaban con bajo contraste en dark */
+html.dark .dashboard-content :where(.bg-slate-200, .bg-gray-200, .bg-zinc-100, .bg-zinc-200) {
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.72), rgba(88, 28, 135, 0.42)) !important;
+  color: #ffffff !important;
+}
+
+html.dark .dashboard-content :where(.shadow-slate-100, .shadow-slate-200, .shadow-sky-100, .shadow-sky-200) {
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38) !important;
 }
