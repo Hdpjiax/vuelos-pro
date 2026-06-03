@@ -102,13 +102,13 @@ export function EmailGenerator() {
         </div>
         <div>
           <h2 className="text-xl font-black text-slate-900 dark:text-white">Mail Generator</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Genera combinaciones de correos a partir de un nombre</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Genera combinaciones de correos a partir de un nombre</p>
         </div>
       </div>
 
       {/* Input */}
-      <div className="rounded-3xl border border-slate-200/70 bg-white/60 p-5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-        <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
+      <div className="rounded-3xl border border-slate-300 bg-white p-5 shadow-md dark:border-white/10 dark:bg-white/5">
+        <label className="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200">
           Nombre completo
         </label>
         <div className="flex gap-3">
@@ -118,7 +118,7 @@ export function EmailGenerator() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
             placeholder="Ej: Juan García"
-            className="flex-1 rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200/60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-cyan-400 dark:focus:ring-cyan-400/20"
+            className="flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-200 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-cyan-400 dark:focus:ring-cyan-400/20"
           />
           <button
             onClick={handleGenerate}
@@ -130,14 +130,14 @@ export function EmailGenerator() {
           {generated && (
             <button
               onClick={handleClear}
-              className="flex items-center gap-2 rounded-2xl border border-rose-200/70 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-500 transition-all hover:bg-rose-500 hover:text-white dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-300"
+              className="flex items-center gap-2 rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600 transition-all hover:bg-rose-500 hover:text-white dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-300"
             >
               <Trash2 size={16} />
             </button>
           )}
         </div>
         {generated && (
-          <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+          <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-500">
             {emails.length} correos generados en {EMAIL_DOMAINS.length} dominios
           </p>
         )}
@@ -149,18 +149,18 @@ export function EmailGenerator() {
           {grouped.map(({ domain, label, color, verifyUrl, emails: domainEmails }) => (
             <div
               key={domain}
-              className="rounded-3xl border border-slate-200/60 bg-white/50 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04]"
+              className="rounded-3xl border border-slate-300 bg-white p-4 shadow-md dark:border-white/10 dark:bg-white/[0.04]"
             >
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className={cn("h-2.5 w-2.5 rounded-full bg-gradient-to-br", color)} />
-                  <span className="text-sm font-black text-slate-700 dark:text-white">{label}</span>
-                  <span className="text-xs text-slate-400">@{domain}</span>
+                  <span className="text-sm font-black text-slate-800 dark:text-white">{label}</span>
+                  <span className="text-xs font-semibold text-slate-500">@{domain}</span>
                 </div>
                 <button
                   onClick={() => window.open(verifyUrl, "_blank")}
                   title={`Verificar en ${label}`}
-                  className="flex items-center gap-1 rounded-xl border border-slate-200/70 bg-white/60 px-2 py-1 text-[11px] font-bold text-slate-500 transition-all hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-300"
+                  className="flex items-center gap-1 rounded-xl border border-slate-300 bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600 transition-all hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-300"
                 >
                   <Search size={11} />
                   Verificar
@@ -171,23 +171,23 @@ export function EmailGenerator() {
                 {domainEmails.map((email) => (
                   <div
                     key={email}
-                    className="group flex items-center justify-between gap-2 rounded-xl border border-slate-100/80 bg-slate-50/60 px-3 py-2 dark:border-white/5 dark:bg-white/[0.03]"
+                    className="group flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/5 dark:bg-white/[0.03]"
                   >
-                    <span className="truncate text-[12px] font-semibold text-slate-600 dark:text-slate-300">
+                    <span className="truncate text-[12px] font-semibold text-slate-700 dark:text-slate-300">
                       {email}
                     </span>
                     <div className="flex shrink-0 items-center gap-1">
                       <button
                         onClick={() => handleCopy(email)}
                         title="Copiar"
-                        className="rounded-lg p-1 text-slate-400 transition-all hover:bg-sky-100 hover:text-sky-600 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-300"
+                        className="rounded-lg p-1 text-slate-500 transition-all hover:bg-sky-100 hover:text-sky-600 dark:hover:bg-cyan-400/10 dark:hover:text-cyan-300"
                       >
                         {copied === email ? <CheckCheck size={13} className="text-green-500" /> : <Copy size={13} />}
                       </button>
                       <button
                         onClick={() => handleVerify(email)}
                         title="Ir al proveedor"
-                        className="rounded-lg p-1 text-slate-400 transition-all hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-400/10 dark:hover:text-violet-300"
+                        className="rounded-lg p-1 text-slate-500 transition-all hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-400/10 dark:hover:text-violet-300"
                       >
                         <Search size={13} />
                       </button>
@@ -202,12 +202,12 @@ export function EmailGenerator() {
 
       {/* Empty state */}
       {!generated && (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-200/80 bg-white/30 py-16 text-center dark:border-white/10 dark:bg-white/[0.02]">
-          <Mail size={36} className="text-slate-300 dark:text-slate-600" />
-          <p className="text-sm font-bold text-slate-400 dark:text-slate-500">
+        <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-300 bg-slate-50 py-16 text-center dark:border-white/10 dark:bg-white/[0.02]">
+          <Mail size={36} className="text-slate-400 dark:text-slate-600" />
+          <p className="text-sm font-bold text-slate-600 dark:text-slate-500">
             Escribe un nombre y presiona <span className="text-sky-500">Generar</span>
           </p>
-          <p className="text-xs text-slate-300 dark:text-slate-600">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-600">
             Genera combinaciones para {EMAIL_DOMAINS.length} dominios populares
           </p>
         </div>
