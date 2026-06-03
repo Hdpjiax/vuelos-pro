@@ -19,30 +19,41 @@ export async function sendSupportMessageAction(fd: FormData) {
   });
   if (error) return { error: error.message };
 
-  // Obtener nombre del usuario para la notificación
-  const { data: profile } = await supabase
+  // Saber si quien envía es admin o usuario
+  const { data: senderProfile } = await supabase
     .from('profiles')
-    .select('full_name, email')
-    .eq('id', user_id)
+    .select('role, full_name, email')
+    .eq('id', user.id)
     .single();
 
-  const senderName = profile?.full_name || profile?.email || 'Un usuario';
+  const isAdmin = senderProfile?.role === 'admin';
+  const senderName = senderProfile?.full_name || senderProfile?.email || 'Soporte';
 
-  // Notificar a todos los admins
-  const { data: admins } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('role', 'admin');
+  if (isAdmin) {
+    // Admin escribe → notificar al usuario dueño de la conversación
+    await supabase.from('notifications').insert({
+      user_id: user_id,
+      title: `💬 Respuesta de soporte`,
+      body: `${senderName}: ${message.trim().slice(0, 80)}`,
+      flight_id: null,
+    });
+  } else {
+    // Usuario escribe → notificar a todos los admins
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'admin');
 
-  if (admins?.length) {
-    await supabase.from('notifications').insert(
-      admins.map((admin) => ({
-        user_id: admin.id,
-        title: `💬 Mensaje de soporte`,
-        body: `${senderName}: ${message.trim().slice(0, 80)}`,
-        flight_id: null,
-      }))
-    );
+    if (admins?.length) {
+      await supabase.from('notifications').insert(
+        admins.map((admin) => ({
+          user_id: admin.id,
+          title: `💬 Mensaje de soporte`,
+          body: `${senderName}: ${message.trim().slice(0, 80)}`,
+          flight_id: null,
+        }))
+      );
+    }
   }
 
   return { ok: true };
