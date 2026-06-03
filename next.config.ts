@@ -7,13 +7,19 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-  // ✅ NUEVO: CSP — restringe de dónde se pueden cargar scripts, estilos e imágenes
   {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-eval requerido por Next.js dev
-      `connect-src 'self' ${supabaseUrl} https://*.supabase.co wss://*.supabase.co`,
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      [
+        "connect-src 'self'",
+        supabaseUrl,
+        "https://*.supabase.co",
+        "wss://*.supabase.co",
+        "https://lookup.binlist.net",
+        "https://www.google-analytics.com",
+      ].join(" "),
       "img-src 'self' blob: data: https://*.supabase.co",
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self'",
