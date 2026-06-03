@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Send, Headphones } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { sendSupportMessageAction } from '@/lib/actions/support-chat';
@@ -13,20 +13,22 @@ type Msg = {
   profiles?: { full_name?: string | null; email?: string | null } | null;
 };
 
-export function UserSupportChat({
-  initial,
-  userId,
-}: {
-  initial: Msg[];
-  userId: string;
-}) {
+export function UserSupportChat({ initial, userId }: { initial: Msg[]; userId: string }) {
   const [messages, setMessages] = useState<Msg[]>(initial);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = useMemo(() => createClient(), []);
 
-  // Realtime — escucha mensajes nuevos en esta conversación
+  const mergeMessages = useCallback((incoming: Msg[]) => {
+    setMessages((cur) => {
+      const ids = new Set(cur.map((m) => m.id));
+      const newOnes = incoming.filter((m) => !ids.has(m.id));
+      return newOnes.length ? [...cur, ...newOnes] : cur;
+    });
+  }, []);
+
+  // Realtime
   useEffect(() => {
     const channel = supabase
       .channel(`user-support-page-${userId}`)
@@ -36,12 +38,39 @@ export function UserSupportChat({
         table: 'support_messages',
         filter: `user_id=eq.${userId}`,
       }, (payload) => {
-        const msg = payload.new as Msg;
-        setMessages((cur) => cur.find((m) => m.id === msg.id) ? cur : [...cur, msg]);
+        mergeMessages([payload.new as Msg]);
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[UserSupportChat] realtime status:', status);
+      });
     return () => { supabase.removeChannel(channel); };
-  }, [userId, supabase]);
+  }, [userId, supabase, mergeMessages]);
+
+  // Polling fallback cada 4s
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const latest = messages[messages.length - 1];
+      const since = latest
+        ? latest.created_at
+        : new Date(Date.now() - 60_000).toISOString();
+
+      const { data } = await supabase
+        .from('support_messages')
+        .select('id, message, sender_id, created_at, profiles:sender_id(full_name, email)')
+        .eq('user_id', userId)
+        .gt('created_at', since)
+        .order('created_at', { ascending: true });
+
+      if (data?.length) {
+        const norm = data.map((m: any) => ({
+          ...m,
+          profiles: Array.isArray(m.profiles) ? (m.profiles[0] ?? null) : m.profiles,
+        }));
+        mergeMessages(norm);
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [userId, supabase, messages, mergeMessages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,9 +83,9 @@ export function UserSupportChat({
     setSending(true);
     setText('');
 
-    // Optimistic
+    const tempId = `temp-${Date.now()}`;
     setMessages((cur) => [...cur, {
-      id: `temp-${Date.now()}`,
+      id: tempId,
       message: trimmed,
       sender_id: userId,
       created_at: new Date().toISOString(),
@@ -71,7 +100,6 @@ export function UserSupportChat({
 
   return (
     <section className="rounded-[2rem] border border-slate-200 bg-white/90 shadow-xl shadow-slate-200/60 overflow-hidden">
-      {/* Header */}
       <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-5">
         <div className="rounded-2xl bg-sky-50 p-2.5 text-sky-700"><Headphones size={18} /></div>
         <div>
@@ -80,7 +108,6 @@ export function UserSupportChat({
         </div>
       </div>
 
-      {/* Mensajes */}
       <div className="flex h-[380px] flex-col gap-2 overflow-y-auto px-5 py-4">
         {!messages.length ? (
           <div className="m-auto rounded-3xl border border-dashed border-slate-200 bg-slate-50/60 px-8 py-6 text-center">
@@ -118,11 +145,7 @@ export function UserSupportChat({
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <form
-        onSubmit={handleSend}
-        className="flex items-end gap-3 border-t border-slate-100 bg-white px-4 py-4"
-      >
+      <form onSubmit={handleSend} className="flex items-end gap-3 border-t border-slate-100 bg-white px-4 py-4">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
