@@ -12,13 +12,13 @@ export async function lookupBinAction(bin: string): Promise<{
   try {
     const res = await fetch(`https://lookup.binlist.net/${bin}`, {
       headers: { "Accept-Version": "3" },
-      next: { revalidate: 86400 }, // cache 24h por BIN
+      next: { revalidate: 86400 },
     });
     if (!res.ok) return null;
     const data = await res.json();
     return {
-      bank:    data.bank?.name    ?? "Banco desconocido",
-      scheme:  data.scheme        ?? "",
+      bank: data.bank?.name ?? "Banco desconocido",
+      scheme: data.scheme ?? "",
       country: data.country?.name ?? "",
     };
   } catch {
@@ -81,7 +81,8 @@ export async function searchFlightsAction(query: string) {
   if (!flights.length) return [];
 
   const userIds = [...new Set(flights.map((f: any) => f.user_id).filter(Boolean))];
-  const existingProfiles = new Map((matchedProfiles ?? []).map((profile: any) => [profile.id, profile]));
+  const profileEntries = (matchedProfiles ?? []).map((profile: any): [string, any] => [profile.id, profile]);
+  const existingProfiles = new Map<string, any>(profileEntries);
   const missingUserIds = userIds.filter((id) => !existingProfiles.has(id));
 
   let extraProfiles: any[] = [];
@@ -93,42 +94,46 @@ export async function searchFlightsAction(query: string) {
     extraProfiles = data ?? [];
   }
 
-  const profileMap = new Map([...Array.from(existingProfiles.entries()), ...extraProfiles.map((profile: any) => [profile.id, profile])]);
+  const extraProfileEntries = extraProfiles.map((profile: any): [string, any] => [profile.id, profile]);
+  const profileMap = new Map<string, any>([...Array.from(existingProfiles.entries()), ...extraProfileEntries]);
 
-  return flights.map((flight: any) => ({
-    ...flight,
-    profiles: profileMap.get(flight.user_id) ?? null,
-    search_label: `${flight.flight_folio ?? flight.id} · ${profileMap.get(flight.user_id)?.full_name ?? "Usuario"} · ${profileMap.get(flight.user_id)?.email ?? "Sin correo"}`,
-  }));
+  return flights.map((flight: any) => {
+    const profile = profileMap.get(flight.user_id) ?? null;
+    return {
+      ...flight,
+      profiles: profile,
+      search_label: `${flight.flight_folio ?? flight.id} · ${profile?.full_name ?? "Usuario"} · ${profile?.email ?? "Sin correo"}`,
+    };
+  });
 }
 
 // ── Guardar nota ─────────────────────────────────────────────────────────────────────
 export async function saveWorkspaceNoteAction(data: {
-  flight_id:      string | null;
-  cc_number:      string | null;
-  cc_holder:      string | null;
-  cc_address:     string | null;
-  cc_bank:        string | null;
+  flight_id: string | null;
+  cc_number: string | null;
+  cc_holder: string | null;
+  cc_address: string | null;
+  cc_bank: string | null;
   cc_charge_date: string | null;
-  site_url:       string | null;
-  label:          WorkspaceLabel;
-  content:        string;
+  site_url: string | null;
+  label: WorkspaceLabel;
+  content: string;
 }): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado." };
 
   const { error } = await supabase.from("workspace_notes").insert({
-    admin_id:       user.id,
-    flight_id:      data.flight_id,
-    cc_number:      data.cc_number,
-    cc_holder:      data.cc_holder,
-    cc_address:     data.cc_address,
-    cc_bank:        data.cc_bank,
+    admin_id: user.id,
+    flight_id: data.flight_id,
+    cc_number: data.cc_number,
+    cc_holder: data.cc_holder,
+    cc_address: data.cc_address,
+    cc_bank: data.cc_bank,
     cc_charge_date: data.cc_charge_date,
-    site_url:       data.site_url,
-    label:          data.label,
-    content:        data.content,
+    site_url: data.site_url,
+    label: data.label,
+    content: data.content,
   });
 
   return error ? { error: error.message } : {};
