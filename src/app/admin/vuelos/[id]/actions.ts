@@ -267,7 +267,7 @@ export async function uploadQrAction(formData: FormData) {
   const files = [...formData.getAll("qr_files"), ...formData.getAll("qr_file")]
     .filter((file): file is File => file instanceof File && file.size > 0);
 
-  if (!files.length) redirect(`/admin/vuelos/${flightId}`);
+  if (!files.length) redirect(`/admin/vuelos/${flightId}?qr_error=no_file`);
 
   const uploaded: { name: string; path: string; size: number; type: string }[] = [];
 
@@ -275,7 +275,7 @@ export async function uploadQrAction(formData: FormData) {
     const isAllowed = file.type.startsWith("image/") || file.type === "application/pdf";
     if (!isAllowed || file.size > 12 * 1024 * 1024) continue;
 
-    const path = `${flight.user_id}/flights/${flightId}/qr/${crypto.randomUUID()}-${slugFileName(file.name)}`;
+    const path = `${admin.id}/flights/${flightId}/qr/${crypto.randomUUID()}-${slugFileName(file.name)}`;
     const { error: uploadError } = await supabase.storage.from("flight-files").upload(path, file, {
       cacheControl: "3600",
       upsert: false,
@@ -284,7 +284,7 @@ export async function uploadQrAction(formData: FormData) {
 
     if (uploadError) continue;
 
-    await supabase.from("flight_attachments").insert({
+    const { error: attachmentError } = await supabase.from("flight_attachments").insert({
       flight_id: flightId,
       uploaded_by: admin.id,
       file_path: path,
@@ -292,6 +292,8 @@ export async function uploadQrAction(formData: FormData) {
       file_type: file.type,
       category: "qr",
     });
+
+    if (attachmentError) continue;
 
     await supabase.from("flight_files").insert({
       flight_id: flightId,
@@ -306,7 +308,7 @@ export async function uploadQrAction(formData: FormData) {
     uploaded.push({ name: file.name, path, size: file.size, type: file.type });
   }
 
-  if (!uploaded.length) redirect(`/admin/vuelos/${flightId}`);
+  if (!uploaded.length) redirect(`/admin/vuelos/${flightId}?qr_error=upload`);
 
   await supabase.from("flights").update({ status: "qr_enviado" }).eq("id", flightId);
 
@@ -339,7 +341,7 @@ export async function uploadQrAction(formData: FormData) {
   });
 
   revalidateFlight(flightId);
-  redirect(`/admin/vuelos/${flightId}`);
+  redirect(`/admin/vuelos/${flightId}?qr_sent=1`);
 }
 
 export async function uploadInternalFilesAction(formData: FormData) {
@@ -366,7 +368,7 @@ export async function uploadInternalFilesAction(formData: FormData) {
     const isAllowed = file.type.startsWith("image/") || file.type === "application/pdf";
     if (!isAllowed || file.size > 12 * 1024 * 1024) continue;
 
-    const path = `${flight.user_id}/flights/${flightId}/internos/${crypto.randomUUID()}-${slugFileName(file.name)}`;
+    const path = `${admin.id}/flights/${flightId}/internos/${crypto.randomUUID()}-${slugFileName(file.name)}`;
     const { error: uploadError } = await supabase.storage.from("flight-files").upload(path, file, {
       cacheControl: "3600",
       upsert: false,
@@ -375,14 +377,16 @@ export async function uploadInternalFilesAction(formData: FormData) {
 
     if (uploadError) continue;
 
-    await supabase.from("flight_attachments").insert({
+    const { error: attachmentError } = await supabase.from("flight_attachments").insert({
       flight_id: flightId,
       uploaded_by: admin.id,
       file_path: path,
       file_name: file.name,
       file_type: file.type,
-      category: "interno",
+      category: "otro",
     });
+
+    if (attachmentError) continue;
 
     uploaded.push({ name: file.name, path, size: file.size, type: file.type });
   }
