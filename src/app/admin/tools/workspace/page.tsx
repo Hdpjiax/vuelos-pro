@@ -1,5 +1,5 @@
 import { ToolsSubNav } from "@/components/admin/ToolsSubNav";
-import { WorkspaceBoard } from "@/components/admin/WorkspaceBoard";
+import { WorkspaceBoard, type WorkspaceNoteRow } from "@/components/admin/WorkspaceBoard";
 import { getWorkspaceNotesAction } from "./actions";
 
 export default async function AdminWorkspacePage() {
@@ -7,7 +7,7 @@ export default async function AdminWorkspacePage() {
   return (
     <div className="space-y-6">
       <ToolsSubNav active="workspace" />
-      <WorkspaceBoard initialNotes={initialNotes as any} />
+      <WorkspaceBoard initialNotes={initialNotes as unknown as WorkspaceNoteRow[]} />
     </div>
   );
 }

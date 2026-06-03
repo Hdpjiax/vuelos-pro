@@ -2,11 +2,25 @@
 
 import { useState, useTransition, useCallback } from "react";
 import {
-  NotebookPen, Plus, Search, Filter, Trash2,
+  NotebookPen, Plus, Search, Trash2,
   Plane, CreditCard, Clock, ChevronDown, RefreshCw,
 } from "lucide-react";
-import { WorkspaceNoteModal, LabelBadge, LABEL_CONFIG, type WorkspaceNote, type WorkspaceLabel } from "./WorkspaceNoteModal";
+import { WorkspaceNoteModal, LabelBadge, LABEL_CONFIG, type WorkspaceLabel } from "./WorkspaceNoteModal";
 import { getWorkspaceNotesAction, deleteWorkspaceNoteAction } from "@/app/admin/tools/workspace/actions";
+
+// Tipo local más laxo — flights puede ser array o objeto según Supabase
+export interface WorkspaceNoteRow {
+  id: string;
+  flight_id: string | null;
+  cc_last4: string | null;
+  cc_brand: string | null;
+  cc_holder: string | null;
+  label: WorkspaceLabel;
+  content: string;
+  created_at: string;
+  admin_id: string;
+  flights?: unknown;
+}
 
 const LABEL_FILTERS = [
   { value: "todas",     label: "Todas" },
@@ -16,8 +30,8 @@ const LABEL_FILTERS = [
   { value: "riesgoso",  label: "Riesgoso" },
 ];
 
-export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNote[] }) {
-  const [notes, setNotes]         = useState<WorkspaceNote[]>(initialNotes);
+export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNoteRow[] }) {
+  const [notes, setNotes]         = useState<WorkspaceNoteRow[]>(initialNotes);
   const [modalOpen, setModalOpen] = useState(false);
   const [labelFilter, setFilter]  = useState("todas");
   const [search, setSearch]       = useState("");
@@ -26,7 +40,7 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNote[]
   const reload = useCallback(() => {
     start(async () => {
       const data = await getWorkspaceNotesAction({ label: labelFilter, search });
-      setNotes(data as WorkspaceNote[]);
+      setNotes(data as unknown as WorkspaceNoteRow[]);
     });
   }, [labelFilter, search]);
 
@@ -38,11 +52,20 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNote[]
     });
   }
 
+  // Normaliza flights: Supabase puede devolver array o null — tomamos el primer elemento
+  function getFlightObj(note: WorkspaceNoteRow) {
+    const f = note.flights;
+    if (!f) return null;
+    if (Array.isArray(f)) return (f as any[])[0] ?? null;
+    return f as Record<string, unknown>;
+  }
+
   const filtered = notes.filter((n) => {
     const matchLabel  = labelFilter === "todas" || n.label === labelFilter;
+    const fl = getFlightObj(n) as any;
     const matchSearch = !search || [
       n.content, n.cc_last4, n.cc_brand, n.cc_holder,
-      (n.flights as any)?.flight_folio,
+      fl?.flight_folio,
     ].filter(Boolean).join(" ").toLowerCase().includes(search.toLowerCase());
     return matchLabel && matchSearch;
   });
@@ -76,7 +99,6 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNote[]
         className="flex flex-wrap items-center gap-3 rounded-3xl border-2 border-slate-200 p-4"
         style={{ backgroundColor: "#ffffff" }}
       >
-        {/* Etiquetas */}
         <div className="flex flex-wrap gap-2">
           {LABEL_FILTERS.map((f) => {
             const cfg = f.value !== "todas" ? LABEL_CONFIG[f.value as WorkspaceLabel] : null;
@@ -98,7 +120,6 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNote[]
           })}
         </div>
 
-        {/* Buscar */}
         <div className="relative ml-auto">
           <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -116,13 +137,17 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNote[]
         </button>
       </div>
 
-      {/* Contador */}
       <p className="text-xs font-bold" style={{ color: "#64748b" }}>
         {filtered.length} nota{filtered.length !== 1 ? "s" : ""}
-        {labelFilter !== "todas" && <> · filtrando por <span style={{ color: LABEL_CONFIG[labelFilter as WorkspaceLabel]?.text }}>{LABEL_CONFIG[labelFilter as WorkspaceLabel]?.label}</span></>}
+        {labelFilter !== "todas" && (
+          <> · filtrando por{" "}
+            <span style={{ color: LABEL_CONFIG[labelFilter as WorkspaceLabel]?.text }}>
+              {LABEL_CONFIG[labelFilter as WorkspaceLabel]?.label}
+            </span>
+          </>
+        )}
       </p>
 
-      {/* Grid de notas */}
       {filtered.length === 0 ? (
         <div
           className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-slate-300 py-16 text-center"
@@ -138,7 +163,7 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNote[]
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((note) => (
-            <NoteCard key={note.id} note={note} onDelete={handleDelete} />
+            <NoteCard key={note.id} note={note} flightObj={getFlightObj(note)} onDelete={handleDelete} />
           ))}
         </div>
       )}
@@ -152,18 +177,25 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNote[]
   );
 }
 
-// ── Tarjeta de nota ──────────────────────────────────────────────────────────────────
-function NoteCard({ note, onDelete }: { note: WorkspaceNote; onDelete: (id: string) => void }) {
+// ── NoteCard ────────────────────────────────────────────────────────────────────────
+function NoteCard({
+  note,
+  flightObj,
+  onDelete,
+}: {
+  note: WorkspaceNoteRow;
+  flightObj: Record<string, unknown> | null;
+  onDelete: (id: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const cfg = LABEL_CONFIG[note.label];
-  const flight = note.flights as any;
+  const fl = flightObj as any;
 
   return (
     <div
       className="flex flex-col rounded-3xl border-2 shadow-md transition-all hover:shadow-lg"
       style={{ backgroundColor: "#ffffff", borderColor: cfg.border }}
     >
-      {/* Top strip con etiqueta */}
       <div
         className="flex items-center justify-between rounded-t-[22px] px-4 py-2"
         style={{ backgroundColor: cfg.bg }}
@@ -179,19 +211,18 @@ function NoteCard({ note, onDelete }: { note: WorkspaceNote; onDelete: (id: stri
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">
-
-        {/* Vuelo enlazado */}
-        {flight && (
+        {fl && (
           <div className="flex items-center gap-2 rounded-xl border border-violet-100 bg-violet-50 px-3 py-2">
             <Plane size={12} className="shrink-0 text-violet-500" />
             <div className="min-w-0">
-              <p className="truncate text-[11px] font-black text-violet-700">{flight.flight_folio ?? flight.id}</p>
-              <p className="truncate text-[10px] text-violet-500">{flight.flight_date} · ${flight.total_amount?.toLocaleString("es-MX")} MXN</p>
+              <p className="truncate text-[11px] font-black text-violet-700">{fl.flight_folio ?? fl.id}</p>
+              <p className="truncate text-[10px] text-violet-500">
+                {fl.flight_date} · ${(fl.total_amount as number)?.toLocaleString("es-MX")} MXN
+              </p>
             </div>
           </div>
         )}
 
-        {/* CC */}
         {(note.cc_last4 || note.cc_brand || note.cc_holder) && (
           <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
             <CreditCard size={12} className="shrink-0 text-slate-400" />
@@ -203,7 +234,6 @@ function NoteCard({ note, onDelete }: { note: WorkspaceNote; onDelete: (id: stri
           </div>
         )}
 
-        {/* Contenido */}
         <div className="flex-1">
           <p
             className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed"
@@ -226,7 +256,6 @@ function NoteCard({ note, onDelete }: { note: WorkspaceNote; onDelete: (id: stri
           )}
         </div>
 
-        {/* Footer */}
         <p className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: "#94a3b8" }}>
           <Clock size={10} />
           {new Date(note.created_at).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })}
