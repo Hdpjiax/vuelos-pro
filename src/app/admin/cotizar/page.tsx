@@ -1,39 +1,45 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Plane } from 'lucide-react';
-import { FlightSearchForm } from '@/components/flights/FlightSearchForm';
-import { FlightSearchResults } from '@/components/flights/FlightSearchResults';
-
-type SearchParams = {
-  origin: string; originLabel: string;
-  destination: string; destinationLabel: string;
-  departureDate: string; returnDate?: string; adults: number;
-};
+import { useState } from "react";
+import { Plane } from "lucide-react";
+import { FlightSearchForm, type FlightSearchParams } from "@/components/flights/FlightSearchForm";
+import { FlightSearchResults } from "@/components/flights/FlightSearchResults";
 
 export default function AdminCotizarPage() {
   const [results, setResults] = useState<any>(null);
   const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<FlightSearchParams | null>(null);
 
-  async function handleSearch(params: SearchParams) {
+  async function handleSearch(params: FlightSearchParams) {
     setLoading(true);
     setError(undefined);
     setResults(null);
     setSummary(params);
+
     try {
       const q = new URLSearchParams({
-        origin: params.origin, destination: params.destination,
-        departureDate: params.departureDate, adults: String(params.adults),
+        origin: params.origin,
+        destination: params.destination,
+        departureDate: params.departureDate,
+        adults: String(params.adults),
+        children: String(params.children),
+        infants: String(params.infants),
+        travelClass: params.travelClass,
+        nonStop: String(params.nonStop),
         ...(params.returnDate ? { returnDate: params.returnDate } : {}),
       });
-      const res = await fetch(`/api/flights/search?${q}`);
+
+      const res = await fetch(`/api/flights/search?${q.toString()}`);
       const json = await res.json();
-      if (json.error) setError(json.error);
+
+      if (!res.ok || json.error) setError(json.error ?? "No se pudo buscar vuelos.");
       else setResults(json);
-    } catch { setError('Error de conexión. Intenta de nuevo.'); }
-    finally { setLoading(false); }
+    } catch {
+      setError("Error de conexión. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
