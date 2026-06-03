@@ -1,0 +1,150 @@
+/* Capa final: contraste dark, sin grises lavados y selects personalizados globales */
+
+.app-custom-select,
+.flight-custom-select {
+  color: #0f172a !important;
+  background: rgba(248, 250, 252, 0.96) !important;
+  border-color: rgba(148, 163, 184, 0.42) !important;
+}
+
+.app-custom-select-menu,
+.flight-custom-select-menu {
+  background: #ffffff !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  color: #0f172a !important;
+}
+
+.app-custom-select-option,
+.flight-custom-select-option {
+  color: #0f172a !important;
+}
+
+.app-custom-select-option.is-selected,
+.flight-custom-select-option.is-selected {
+  background: linear-gradient(135deg, #e0f2fe, #ede9fe) !important;
+  color: #075985 !important;
+}
+
+html.dark .app-custom-select,
+html.dark .flight-custom-select {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, rgba(9, 15, 34, 0.98), rgba(46, 18, 72, 0.92)) !important;
+  border-color: rgba(251, 191, 36, 0.42) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 0 0 1px rgba(236,72,153,0.08) !important;
+}
+
+html.dark .app-custom-select svg,
+html.dark .flight-custom-select svg {
+  color: #fbbf24 !important;
+}
+
+html.dark .app-custom-select-menu,
+html.dark .flight-custom-select-menu {
+  background: linear-gradient(145deg, #07111f 0%, #160f2d 54%, #2a0f39 100%) !important;
+  border-color: rgba(251, 191, 36, 0.38) !important;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.68), 0 0 38px rgba(236,72,153,0.16) !important;
+}
+
+html.dark .app-custom-select-option,
+html.dark .flight-custom-select-option {
+  color: #ffffff !important;
+}
+
+html.dark .app-custom-select-option:hover,
+html.dark .app-custom-select-option.is-selected,
+html.dark .flight-custom-select-option:hover,
+html.dark .flight-custom-select-option.is-selected {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.46), rgba(236, 72, 153, 0.40), rgba(139, 92, 246, 0.36)) !important;
+  color: #ffffff !important;
+}
+
+html.dark .app-custom-select-option.is-disabled,
+html.dark .flight-custom-select-option.is-disabled {
+  color: rgba(226, 232, 240, 0.48) !important;
+}
+
+/* Eliminar bloques grises lavados en dark */
+html.dark .dashboard-content :where(.bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-gray-50, .bg-gray-100, .bg-gray-200, .bg-zinc-50, .bg-zinc-100, .bg-zinc-200) {
+  background: linear-gradient(135deg, rgba(17, 27, 54, 0.88), rgba(54, 24, 78, 0.66), rgba(17, 24, 39, 0.82)) !important;
+  border-color: rgba(251, 191, 36, 0.22) !important;
+  color: #f8fafc !important;
+}
+
+html.dark .dashboard-content :where(.bg-white, .bg-white\/90, .bg-white\/80, .bg-white\/70, .bg-white\/60) {
+  background: linear-gradient(145deg, rgba(9, 18, 38, 0.90), rgba(28, 15, 54, 0.78)) !important;
+  border-color: rgba(34, 211, 238, 0.16) !important;
+  color: #f8fafc !important;
+}
+
+html.dark .dashboard-content :where(.text-slate-900, .text-slate-950, .text-gray-900) {
+  color: #ffffff !important;
+}
+
+html.dark .dashboard-content :where(.text-slate-800, .text-slate-700, .text-gray-700) {
+  color: #e0f2fe !important;
+}
+
+html.dark .dashboard-content :where(.text-slate-600, .text-slate-500, .text-gray-500) {
+  color: #bae6fd !important;
+}
+
+html.dark .dashboard-content :where(.text-slate-400, .text-gray-400) {
+  color: #fde68a !important;
+}
+
+/* Subir nuevo vuelo: tarjetas de pasajeros */
+html.dark .new-flight-passenger-card {
+  background: linear-gradient(145deg, rgba(12, 24, 48, 0.90), rgba(55, 20, 72, 0.72)) !important;
+  border-color: rgba(251, 191, 36, 0.24) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 48px rgba(0,0,0,0.36) !important;
+}
+
+html.dark .new-flight-passenger-card input,
+html.dark .new-flight-passenger-card textarea {
+  background: linear-gradient(135deg, rgba(3, 7, 18, 0.78), rgba(30, 12, 50, 0.72)) !important;
+  border-color: rgba(34, 211, 238, 0.20) !important;
+  color: #ffffff !important;
+}
+
+html.dark .new-flight-passenger-card input::placeholder,
+html.dark .new-flight-passenger-card textarea::placeholder {
+  color: rgba(186, 230, 253, 0.62) !important;
+}
+
+/* Contador total pasajeros de cotizador */
+html.dark form .rounded-2xl.border.border-slate-200.bg-slate-50\/80 {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(236, 72, 153, 0.18), rgba(249, 115, 22, 0.16)) !important;
+  border-color: rgba(251, 191, 36, 0.30) !important;
+  color: #ffffff !important;
+}
+
+html.dark form .rounded-2xl.border.border-slate-200.bg-slate-50\/80 strong,
+html.dark form .rounded-2xl.border.border-slate-200.bg-slate-50\/80 span,
+html.dark form .rounded-2xl.border.border-slate-200.bg-slate-50\/80 svg {
+  color: #ffffff !important;
+}
+
+/* Tarjetas de precio y acciones */
+html.dark .flight-price-card {
+  background: linear-gradient(145deg, rgba(249,115,22,0.24), rgba(236,72,153,0.20), rgba(139,92,246,0.22)) !important;
+  border-color: rgba(251, 191, 36, 0.34) !important;
+}
+
+html.dark .flight-price-card :where(p, span) {
+  color: #ffffff !important;
+}
+
+/* Botones claros usados en dark */
+html.dark .dashboard-content :where(button, a).bg-white,
+html.dark .dashboard-content :where(button, a).bg-slate-50,
+html.dark .dashboard-content :where(button, a).bg-slate-100 {
+  background: linear-gradient(135deg, rgba(249,115,22,0.36), rgba(236,72,153,0.34), rgba(139,92,246,0.32)) !important;
+  color: #ffffff !important;
+  border-color: rgba(251, 191, 36, 0.30) !important;
+}
+
+html.dark .dashboard-content :where(button, a).bg-white *,
+html.dark .dashboard-content :where(button, a).bg-slate-50 *,
+html.dark .dashboard-content :where(button, a).bg-slate-100 * {
+  color: #ffffff !important;
+}
