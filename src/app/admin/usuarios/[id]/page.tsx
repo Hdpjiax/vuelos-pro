@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CreditCard, History, Plane, ShieldCheck, Users } from "lucide-react";
