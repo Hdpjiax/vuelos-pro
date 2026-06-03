@@ -10,17 +10,17 @@ import {
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface BinResult {
   number?: { length?: number; luhn?: boolean };
-  scheme?: string;       // visa, mastercard, amex …
-  type?: string;         // debit | credit
+  scheme?: string;
+  type?: string;
   brand?: string;
   prepaid?: boolean;
   country?: { numeric?: string; alpha2?: string; name?: string; emoji?: string; currency?: string; latitude?: number; longitude?: number };
   bank?: { name?: string; url?: string; phone?: string; city?: string };
+  error?: string;
 }
 
 type Status = "idle" | "loading" | "ok" | "error";
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
 function capitalize(s?: string) {
   if (!s) return "—";
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
@@ -44,7 +44,6 @@ function typeColor(type?: string) {
   return { bg: "#f1f5f9", text: "#475569", border: "#cbd5e1" };
 }
 
-// ── CopyBtn inline ───────────────────────────────────────────────────────────────
 function CopyBtn({ value }: { value: string }) {
   const [ok, setOk] = useState(false);
   async function handle() {
@@ -60,7 +59,6 @@ function CopyBtn({ value }: { value: string }) {
   );
 }
 
-// ── Fila de dato ──────────────────────────────────────────────────────────────────
 function Row({ icon, label, value, copyable = true }: { icon: React.ReactNode; label: string; value: string; copyable?: boolean }) {
   if (!value || value === "—") return null;
   return (
@@ -76,10 +74,8 @@ function Row({ icon, label, value, copyable = true }: { icon: React.ReactNode; l
   );
 }
 
-// ── Historial item ─────────────────────────────────────────────────────────────────
 interface HistEntry { bin: string; scheme?: string; bank?: string; country?: string; type?: string; }
 
-// ── Componente principal ───────────────────────────────────────────────────────────
 const MAX_HIST = 10;
 
 export function BinChecker() {
@@ -90,7 +86,6 @@ export function BinChecker() {
   const [history, setHistory] = useState<HistEntry[]>([]);
   const inputRef              = useRef<HTMLInputElement>(null);
 
-  // Formatea el input: solo dígitos, máx 8
   function handleInput(raw: string) {
     setInput(raw.replace(/\D/g, "").slice(0, 8));
   }
@@ -103,16 +98,16 @@ export function BinChecker() {
     setError("");
 
     try {
-      const res = await fetch(`https://lookup.binlist.net/${bin}`, {
-        headers: { "Accept-Version": "3" },
-      });
-      if (res.status === 404) throw new Error("BIN no encontrado en la base de datos.");
-      if (res.status === 429) throw new Error("Límite de consultas alcanzado. Espera unos segundos.");
-      if (!res.ok)            throw new Error(`Error ${res.status} al consultar el BIN.`);
+      // ← Llama al proxy interno, no a binlist.net directamente
+      const res = await fetch(`/api/bin/${bin}`);
       const data: BinResult = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? `Error ${res.status}`);
+      }
+
       setResult(data);
       setStatus("ok");
-      // Guardar historial
       const entry: HistEntry = {
         bin,
         scheme:  data.scheme,
@@ -160,13 +155,11 @@ export function BinChecker() {
       {/* Input */}
       <div className="rounded-3xl border-2 border-slate-300 p-5 shadow-md dark:border-white/10 dark:bg-slate-800"
         style={{ backgroundColor: "#ffffff" }}>
-
         <label htmlFor="bin-input" className="mb-1 block text-sm font-bold dark:text-slate-200"
           style={{ color: "#1e293b" }}>Número BIN</label>
         <p className="mb-3 text-xs font-medium" style={{ color: "#64748b" }}>
           Ingresa los primeros <span style={{ color: "#6366f1" }}>6 a 8 dígitos</span> del número de tarjeta.
         </p>
-
         <div className="flex gap-3">
           <div className="relative flex-1">
             <input
@@ -189,7 +182,6 @@ export function BinChecker() {
               </button>
             )}
           </div>
-
           <button
             onClick={() => handleCheck()}
             disabled={input.length < 6 || status === "loading"}
@@ -201,8 +193,6 @@ export function BinChecker() {
             {status === "loading" ? "Consultando…" : "Verificar"}
           </button>
         </div>
-
-        {/* Barra de progreso de longitud */}
         <div className="mt-3 flex items-center gap-2">
           {[...Array(8)].map((_, i) => (
             <div key={i}
@@ -234,29 +224,20 @@ export function BinChecker() {
       {/* Resultado */}
       {status === "ok" && result && (
         <div className="space-y-4">
-
-          {/* Tarjeta visual */}
           <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${schemeGrad} p-6 text-white shadow-xl`}>
-            {/* Patrón de fondo */}
             <div className="pointer-events-none absolute inset-0 opacity-10"
               style={{ backgroundImage: "radial-gradient(circle at 80% 20%, white 1px, transparent 1px), radial-gradient(circle at 20% 80%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }}
             />
             <div className="relative flex items-start justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest opacity-70">BIN consultado</p>
-                <p className="mt-1 font-mono text-3xl font-black tracking-[0.3em]">
-                  {input.padEnd(8, "•")}
-                </p>
+                <p className="mt-1 font-mono text-3xl font-black tracking-[0.3em]">{input.padEnd(8, "•")}</p>
               </div>
               <div className="text-right">
-                {result.scheme && (
-                  <p className="text-lg font-black uppercase tracking-widest">{result.scheme}</p>
-                )}
+                {result.scheme && <p className="text-lg font-black uppercase tracking-widest">{result.scheme}</p>}
                 {result.type && (
-                  <span
-                    className="mt-1 inline-block rounded-xl px-3 py-1 text-xs font-black uppercase"
-                    style={{ backgroundColor: tc.bg, color: tc.text, border: `1.5px solid ${tc.border}` }}
-                  >
+                  <span className="mt-1 inline-block rounded-xl px-3 py-1 text-xs font-black uppercase"
+                    style={{ backgroundColor: tc.bg, color: tc.text, border: `1.5px solid ${tc.border}` }}>
                     {result.type}
                   </span>
                 )}
@@ -264,14 +245,8 @@ export function BinChecker() {
             </div>
             <div className="relative mt-4 flex items-end justify-between">
               <div>
-                {result.bank?.name && (
-                  <p className="text-sm font-black opacity-90">{result.bank.name}</p>
-                )}
-                {result.country && (
-                  <p className="text-xs font-medium opacity-70">
-                    {result.country.emoji} {result.country.name}
-                  </p>
-                )}
+                {result.bank?.name && <p className="text-sm font-black opacity-90">{result.bank.name}</p>}
+                {result.country && <p className="text-xs font-medium opacity-70">{result.country.emoji} {result.country.name}</p>}
               </div>
               <div className="flex flex-col items-end gap-1">
                 {result.prepaid && (
@@ -279,58 +254,44 @@ export function BinChecker() {
                 )}
                 {result.number?.luhn !== undefined && (
                   <span className="flex items-center gap-1 rounded-xl bg-white/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
-                    {result.number.luhn
-                      ? <><ShieldCheck size={10} /> Luhn ✔</>  
-                      : <><ShieldX size={10} /> Luhn ✖</>}
+                    {result.number.luhn ? <><ShieldCheck size={10} /> Luhn ✔</> : <><ShieldX size={10} /> Luhn ✖</>}
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Detalles en filas */}
-          <div
-            className="rounded-3xl border-2 border-slate-200 p-4 shadow-md dark:border-white/10 dark:bg-slate-800"
-            style={{ backgroundColor: "#ffffff" }}
-          >
+          <div className="rounded-3xl border-2 border-slate-200 p-4 shadow-md dark:border-white/10 dark:bg-slate-800" style={{ backgroundColor: "#ffffff" }}>
             <p className="mb-3 text-xs font-black uppercase tracking-wider" style={{ color: "#94a3b8" }}>Detalles del BIN</p>
             <div className="space-y-2">
-              <Row icon={<WalletCards size={14} />}  label="Esquema"        value={capitalize(result.scheme)} />
-              <Row icon={<CreditCard size={14} />}   label="Tipo"           value={capitalize(result.type)} />
-              <Row icon={<Smartphone size={14} />}   label="Marca / Brand"  value={result.brand ?? "—"} />
-              <Row icon={<ShieldCheck size={14} />}  label="Prepaid"        value={result.prepaid === true ? "Sí" : result.prepaid === false ? "No" : "—"} copyable={false} />
-              <Row icon={<ShieldCheck size={14} />}  label="Longitud tarjeta" value={result.number?.length ? String(result.number.length) : "—"} copyable={false} />
-              <Row icon={<ShieldCheck size={14} />}  label="Validación Luhn" value={result.number?.luhn === true ? "Válida" : result.number?.luhn === false ? "No válida" : "—"} copyable={false} />
+              <Row icon={<WalletCards size={14} />} label="Esquema"          value={capitalize(result.scheme)} />
+              <Row icon={<CreditCard size={14} />}  label="Tipo"             value={capitalize(result.type)} />
+              <Row icon={<Smartphone size={14} />}  label="Marca / Brand"    value={result.brand ?? "—"} />
+              <Row icon={<ShieldCheck size={14} />} label="Prepaid"          value={result.prepaid === true ? "Sí" : result.prepaid === false ? "No" : "—"} copyable={false} />
+              <Row icon={<ShieldCheck size={14} />} label="Longitud tarjeta" value={result.number?.length ? String(result.number.length) : "—"} copyable={false} />
+              <Row icon={<ShieldCheck size={14} />} label="Validación Luhn"  value={result.number?.luhn === true ? "Válida" : result.number?.luhn === false ? "No válida" : "—"} copyable={false} />
             </div>
           </div>
 
-          {/* Banco */}
           {result.bank && (
-            <div
-              className="rounded-3xl border-2 border-slate-200 p-4 shadow-md dark:border-white/10 dark:bg-slate-800"
-              style={{ backgroundColor: "#ffffff" }}
-            >
+            <div className="rounded-3xl border-2 border-slate-200 p-4 shadow-md dark:border-white/10 dark:bg-slate-800" style={{ backgroundColor: "#ffffff" }}>
               <p className="mb-3 text-xs font-black uppercase tracking-wider" style={{ color: "#94a3b8" }}>Banco emisor</p>
               <div className="space-y-2">
-                <Row icon={<Landmark size={14} />}   label="Banco"     value={result.bank.name ?? "—"} />
-                <Row icon={<Building2 size={14} />}  label="Ciudad"    value={result.bank.city ?? "—"} />
-                <Row icon={<Globe size={14} />}      label="Sitio web" value={result.bank.url ?? "—"} />
-                <Row icon={<Search size={14} />}     label="Teléfono"  value={result.bank.phone ?? "—"} />
+                <Row icon={<Landmark size={14} />}  label="Banco"     value={result.bank.name ?? "—"} />
+                <Row icon={<Building2 size={14} />} label="Ciudad"    value={result.bank.city ?? "—"} />
+                <Row icon={<Globe size={14} />}     label="Sitio web" value={result.bank.url ?? "—"} />
+                <Row icon={<Search size={14} />}    label="Teléfono"  value={result.bank.phone ?? "—"} />
               </div>
             </div>
           )}
 
-          {/* País */}
           {result.country && (
-            <div
-              className="rounded-3xl border-2 border-slate-200 p-4 shadow-md dark:border-white/10 dark:bg-slate-800"
-              style={{ backgroundColor: "#ffffff" }}
-            >
+            <div className="rounded-3xl border-2 border-slate-200 p-4 shadow-md dark:border-white/10 dark:bg-slate-800" style={{ backgroundColor: "#ffffff" }}>
               <p className="mb-3 text-xs font-black uppercase tracking-wider" style={{ color: "#94a3b8" }}>País</p>
               <div className="space-y-2">
-                <Row icon={<Globe size={14} />}  label="País"     value={result.country.name ? `${result.country.emoji ?? ""} ${result.country.name}` : "—"} />
-                <Row icon={<Globe size={14} />}  label="Código"   value={result.country.alpha2 ?? "—"} />
-                <Row icon={<Globe size={14} />}  label="Moneda"   value={result.country.currency ?? "—"} />
+                <Row icon={<Globe size={14} />} label="País"   value={result.country.name ? `${result.country.emoji ?? ""} ${result.country.name}` : "—"} />
+                <Row icon={<Globe size={14} />} label="Código" value={result.country.alpha2 ?? "—"} />
+                <Row icon={<Globe size={14} />} label="Moneda" value={result.country.currency ?? "—"} />
               </div>
             </div>
           )}
@@ -339,19 +300,14 @@ export function BinChecker() {
 
       {/* Historial */}
       {history.length > 0 && (
-        <div
-          className="rounded-3xl border-2 border-slate-200 p-4 shadow-md dark:border-white/10 dark:bg-slate-800"
-          style={{ backgroundColor: "#ffffff" }}
-        >
+        <div className="rounded-3xl border-2 border-slate-200 p-4 shadow-md dark:border-white/10 dark:bg-slate-800" style={{ backgroundColor: "#ffffff" }}>
           <p className="mb-3 text-xs font-black uppercase tracking-wider" style={{ color: "#94a3b8" }}>Historial de consultas</p>
           <div className="flex flex-wrap gap-2">
             {history.map((h) => (
-              <button
-                key={h.bin}
+              <button key={h.bin}
                 onClick={() => { setInput(h.bin); handleCheck(h.bin); }}
                 className="flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-1.5 text-xs font-bold transition-all hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
-                style={{ backgroundColor: "#f8fafc" }}
-              >
+                style={{ backgroundColor: "#f8fafc" }}>
                 <CreditCard size={11} className="text-violet-500" />
                 <span style={{ color: "#1e293b" }}>{h.bin}</span>
                 {h.scheme && <span className="text-slate-400">· {capitalize(h.scheme)}</span>}
@@ -364,17 +320,14 @@ export function BinChecker() {
 
       {/* Empty state */}
       {status === "idle" && history.length === 0 && (
-        <div
-          className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-slate-300 py-16 text-center dark:border-white/10 dark:bg-slate-800/50"
-          style={{ backgroundColor: "#f8fafc" }}
-        >
+        <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-slate-300 py-16 text-center dark:border-white/10 dark:bg-slate-800/50"
+          style={{ backgroundColor: "#f8fafc" }}>
           <CreditCard size={36} className="text-slate-400" />
           <p className="text-sm font-bold" style={{ color: "#475569" }}>
-            Ingresa un BIN y presiona{" "}
-            <span style={{ color: "#6366f1" }}>Verificar</span>
+            Ingresa un BIN y presiona <span style={{ color: "#6366f1" }}>Verificar</span>
           </p>
           <p className="text-xs font-semibold" style={{ color: "#64748b" }}>
-            Obtención de datos en tiempo real vía <strong>binlist.net</strong>
+            Consulta server-side vía proxy interno · datos de <strong>binlist.net</strong>
           </p>
         </div>
       )}
