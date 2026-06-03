@@ -240,12 +240,12 @@ export function RealtimeNotifications({
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(20)
-      .then(({ data }) => { if (mounted) setItems((data ?? []) as NotificationItem[]); });
+      .then(({ data }: { data: NotificationItem[] | null }) => { if (mounted) setItems(data ?? []); });
 
     const channel = supabase
       .channel(`notifications-${userId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-        (payload) => {
+        (payload: { new: NotificationItem }) => {
           const n = payload.new as NotificationItem;
           setItems((cur) => [n, ...cur].slice(0, 20));
           setLatest(n);
