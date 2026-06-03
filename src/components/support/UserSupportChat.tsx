@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Send, Headphones } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { sendSupportMessageAction } from '@/lib/actions/support-chat';
@@ -13,64 +13,65 @@ type Msg = {
   profiles?: { full_name?: string | null; email?: string | null } | null;
 };
 
+function mergeIncoming(cur: Msg[], incoming: Msg[]): Msg[] {
+  const ids = new Set(cur.map((m) => m.id));
+  const newOnes = incoming.filter((m) => !ids.has(m.id));
+  return newOnes.length ? [...cur, ...newOnes] : cur;
+}
+
 export function UserSupportChat({ initial, userId }: { initial: Msg[]; userId: string }) {
   const [messages, setMessages] = useState<Msg[]>(initial);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = useMemo(() => createClient(), []);
+  const lastCreatedAt = useRef<string>(
+    initial.length ? initial[initial.length - 1].created_at : new Date(Date.now() - 60_000).toISOString()
+  );
 
-  const mergeMessages = useCallback((incoming: Msg[]) => {
-    setMessages((cur) => {
-      const ids = new Set(cur.map((m) => m.id));
-      const newOnes = incoming.filter((m) => !ids.has(m.id));
-      return newOnes.length ? [...cur, ...newOnes] : cur;
-    });
-  }, []);
+  // Actualizar ref cuando llegan mensajes nuevos
+  useEffect(() => {
+    if (messages.length) {
+      lastCreatedAt.current = messages[messages.length - 1].created_at;
+    }
+  }, [messages]);
 
   // Realtime
   useEffect(() => {
     const channel = supabase
-      .channel(`user-support-page-${userId}`)
+      .channel(`user-support-${userId}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'support_messages',
         filter: `user_id=eq.${userId}`,
       }, (payload) => {
-        mergeMessages([payload.new as Msg]);
+        setMessages((cur) => mergeIncoming(cur, [payload.new as Msg]));
       })
-      .subscribe((status) => {
-        console.log('[UserSupportChat] realtime status:', status);
-      });
+      .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [userId, supabase, mergeMessages]);
+  }, [userId, supabase]);
 
   // Polling fallback cada 4s
   useEffect(() => {
     const interval = setInterval(async () => {
-      const latest = messages[messages.length - 1];
-      const since = latest
-        ? latest.created_at
-        : new Date(Date.now() - 60_000).toISOString();
-
       const { data } = await supabase
         .from('support_messages')
         .select('id, message, sender_id, created_at, profiles:sender_id(full_name, email)')
         .eq('user_id', userId)
-        .gt('created_at', since)
+        .gt('created_at', lastCreatedAt.current)
         .order('created_at', { ascending: true });
 
       if (data?.length) {
-        const norm = data.map((m: any) => ({
+        const norm: Msg[] = data.map((m: any) => ({
           ...m,
           profiles: Array.isArray(m.profiles) ? (m.profiles[0] ?? null) : m.profiles,
         }));
-        mergeMessages(norm);
+        setMessages((cur) => mergeIncoming(cur, norm));
       }
     }, 4000);
     return () => clearInterval(interval);
-  }, [userId, supabase, messages, mergeMessages]);
+  }, [userId, supabase]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -83,18 +84,27 @@ export function UserSupportChat({ initial, userId }: { initial: Msg[]; userId: s
     setSending(true);
     setText('');
 
-    const tempId = `temp-${Date.now()}`;
-    setMessages((cur) => [...cur, {
-      id: tempId,
-      message: trimmed,
-      sender_id: userId,
-      created_at: new Date().toISOString(),
-    }]);
-
     const fd = new FormData();
     fd.append('message', trimmed);
     fd.append('user_id', userId);
     await sendSupportMessageAction(fd);
+
+    // Fetch inmediato tras enviar
+    const { data } = await supabase
+      .from('support_messages')
+      .select('id, message, sender_id, created_at, profiles:sender_id(full_name, email)')
+      .eq('user_id', userId)
+      .gt('created_at', lastCreatedAt.current)
+      .order('created_at', { ascending: true });
+
+    if (data?.length) {
+      const norm: Msg[] = data.map((m: any) => ({
+        ...m,
+        profiles: Array.isArray(m.profiles) ? (m.profiles[0] ?? null) : m.profiles,
+      }));
+      setMessages((cur) => mergeIncoming(cur, norm));
+    }
+
     setSending(false);
   }
 
@@ -154,7 +164,8 @@ export function UserSupportChat({ initial, userId }: { initial: Msg[]; userId: s
           }}
           placeholder="Escribe tu mensaje..."
           rows={1}
-          className="min-h-[44px] flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-100"
+          disabled={sending}
+          className="min-h-[44px] flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-100 disabled:opacity-60"
           style={{ maxHeight: '120px' }}
         />
         <button
