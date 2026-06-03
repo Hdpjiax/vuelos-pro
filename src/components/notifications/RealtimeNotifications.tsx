@@ -232,29 +232,52 @@ export function RealtimeNotifications({
   const [open, setOpen] = useState(false);
   const supabase = useMemo(() => createClient(), []);
 
-  useEffect(() => {
-    let mounted = true;
-    supabase
+useEffect(() => {
+  let mounted = true;
+
+  async function loadLatest() {
+    const { data }: { data: NotificationItem[] | null } = await supabase
       .from("notifications")
       .select("id, title, body, created_at, read, flight_id")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }: { data: NotificationItem[] | null }) => { if (mounted) setItems(data ?? []); });
+      .limit(20);
 
-    const channel = supabase
-      .channel(`notifications-${userId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-        (payload: { new: NotificationItem }) => {
-          const n = payload.new as NotificationItem;
-          setItems((cur) => [n, ...cur].slice(0, 20));
-          setLatest(n);
-        }
-      )
-      .subscribe();
+    if (mounted) setItems(data ?? []);
+  }
 
-    return () => { mounted = false; supabase.removeChannel(channel); };
-  }, [supabase, userId]);
+  loadLatest();
+
+  const channel = supabase
+    .channel(`notifications-${userId}-${Date.now()}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${userId}`,
+      },
+      async (payload: { new: NotificationItem }) => {
+        const n = payload.new;
+        if (!mounted) return;
+
+        setLatest(n);
+        await loadLatest();
+      }
+    )
+    .subscribe((status: string) => {
+      console.log("[RealtimeNotifications] canal:", status, userId);
+    });
+
+  const interval = setInterval(loadLatest, 4000);
+
+  return () => {
+    mounted = false;
+    clearInterval(interval);
+    supabase.removeChannel(channel);
+  };
+}, [supabase, userId]);
 
   async function markAllRead() {
     const ids = items.filter((i) => !i.read).map((i) => i.id);

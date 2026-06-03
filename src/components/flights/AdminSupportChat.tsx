@@ -107,7 +107,7 @@ export function AdminSupportChat({
                 }));
                 setMessages((cur) => mergeIncoming(cur, norm));
             }
-        }, 4000);
+        }, 1500);
         return () => clearInterval(interval);
     }, [userId, supabase]);
 
