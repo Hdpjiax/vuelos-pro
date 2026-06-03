@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Search, SlidersHorizontal, AlertTriangle } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { CustomSelectField } from "@/components/ui/CustomSelectField";
 import { createClient } from "@/lib/supabase/server";
 import { buttonPrimarySmall, buttonSecondarySmall, inputClass, labelClass, panelClass } from "@/lib/styles";
 import { addDaysISO, flightTypeLabel, formatCurrency, formatDate, formatTime, formatFlightFolio, getAmountToPay, getTodayISO, statusLabel } from "@/lib/utils";
@@ -115,14 +116,12 @@ export default async function AdminFlightsPage({ searchParams }: PageProps) {
         </div>
 
         <form className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_1.3fr_auto] xl:items-end">
-          <label className="space-y-2">
-            <span className={labelClass}>Estado</span>
-            <select className={inputClass} name="status" defaultValue={activeStatus}>
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
+          <CustomSelectField
+            name="status"
+            label="Estado"
+            defaultValue={activeStatus}
+            options={statusOptions}
+          />
 
           <label className="space-y-2">
             <span className={labelClass}>Desde</span>
