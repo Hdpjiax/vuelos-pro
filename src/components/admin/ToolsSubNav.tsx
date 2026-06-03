@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Wrench, Mail, MapPin, CreditCard } from "lucide-react";
+import { Wrench, Mail, MapPin, CreditCard, NotebookPen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tools = [
   { slug: "mail-generator",    label: "Mail Generator",    icon: <Mail size={15} /> },
   { slug: "address-generator", label: "Address Generator", icon: <MapPin size={15} /> },
   { slug: "bin-checker",       label: "BIN Checker",       icon: <CreditCard size={15} /> },
+  { slug: "workspace",         label: "Workspace",         icon: <NotebookPen size={15} /> },
 ];
 
 export function ToolsSubNav({ active }: { active: string }) {
