@@ -15,12 +15,11 @@ export function DashboardShell({ role, userId, userName, children }: DashboardSh
     <main className={role === "admin" ? "admin-bg min-h-screen" : "dashboard-bg min-h-screen"}>
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
         <Sidebar role={role} userName={userName} />
-        <section className="min-w-0 flex-1 overflow-x-hidden px-3 pb-24 pt-[4.5rem] sm:px-5 md:ml-72 md:px-7 md:py-7 md:pt-7">
+        <section className="dashboard-content min-w-0 flex-1 overflow-x-hidden px-4 pb-24 pt-[5.25rem] sm:px-6 md:ml-72 md:px-8 md:py-8 md:pt-8 2xl:px-10 2xl:py-10">
           {children}
         </section>
       </div>
       <RealtimeNotifications userId={userId} role={role} userName={userName} />
-      {/* Chat de soporte flotante — solo para usuarios */}
       {role === "user" && (
         <SupportChat userId={userId} userName={userName} />
       )}
