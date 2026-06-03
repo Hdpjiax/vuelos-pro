@@ -239,8 +239,8 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
   if (!open) return null;
 
   const modalStyle: React.CSSProperties = pos
-    ? { position: "fixed", left: pos.x, top: pos.y, transform: "none", maxHeight: "92vh" }
-    : { position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)", maxHeight: "92vh" };
+    ? { position: "fixed", left: pos.x, top: pos.y, transform: "none", maxHeight: "82vh" }
+    : { position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)", maxHeight: "82vh" };
 
   return (
     <div className="fixed inset-0 z-50" style={{ pointerEvents: "none" }}>
@@ -259,251 +259,147 @@ export function WorkspaceNoteModal({ open, onClose, onSaved }: ModalProps) {
       >
         {/* ── Header / drag handle ── */}
         <div
+          onMouseDown={onMouseDown}
           className="flex cursor-grab items-center justify-between px-6 py-4 active:cursor-grabbing"
           style={{
-            background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+            background: "linear-gradient(90deg,#0f172a,#1e1b4b,#312e81)",
+            color: "#fff",
             userSelect: "none",
           }}
-          onMouseDown={onMouseDown}
         >
-          <div className="flex items-center gap-3">
-            <GripHorizontal size={16} style={{ color: "rgba(255,255,255,0.6)" }} />
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
-              <NotebookPen size={17} color="#fff" />
+          <div className="flex min-w-0 items-center gap-3">
+            <GripHorizontal size={16} className="shrink-0 text-cyan-100" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 text-white shadow-lg shadow-violet-500/30">
+              <NotebookPen size={17} />
             </div>
-            <div>
-              <p style={{ color: "#ffffff", fontWeight: 900, fontSize: 15, lineHeight: 1.2 }}>Nueva nota — Workspace</p>
-              <p style={{ color: "rgba(255,255,255,0.72)", fontWeight: 500, fontSize: 11, marginTop: 2 }}>
-                Arrastra para mover · el fondo sigue activo
-              </p>
+            <div className="min-w-0">
+              <p className="truncate text-base font-black">Nueva nota — Workspace</p>
+              <p className="truncate text-xs font-semibold text-cyan-100/85">Click y arrastra desde esta barra · borrador automático activo</p>
             </div>
           </div>
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={handleClose}
-            className="rounded-xl p-2 transition-all hover:bg-white/20"
-            style={{ color: "rgba(255,255,255,0.8)" }}
-          >
+          <button onClick={handleClose} className="rounded-xl p-2 text-cyan-100/80 transition hover:bg-white/10 hover:text-white" aria-label="Cerrar ventana">
             <X size={18} />
           </button>
         </div>
 
-        {/* ── Body ── */}
-        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-
-          {/* Importar vuelo */}
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5" style={{ background: "#ffffff", color: "#0f172a" }}>
           <div>
-            <p style={S.fieldLabel}><Plane size={13} color="#4f46e5" /> Importar vuelo <span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "#64748b" }}>(opcional)</span></p>
+            <label style={S.fieldLabel}><Plane size={12} /> Importar vuelo (opcional)</label>
             <div className="relative">
-              <div
-                className="flex items-center gap-2 rounded-2xl border-2 px-4 py-2.5"
-                style={{ backgroundColor: "#f1f5f9", borderColor: selectedFlight ? "#6366f1" : "#94a3b8" }}
-              >
-                <Search size={15} style={{ color: "#64748b", flexShrink: 0 }} />
+              <div className={`flex cursor-text items-center gap-2 rounded-2xl border-2 px-4 py-3 transition ${selectedFlight ? "border-violet-500" : "border-slate-400"} bg-white shadow-sm`}>
+                <Search size={14} className="shrink-0 text-slate-600" />
                 <input
-                  style={{ flex: 1, background: "transparent", outline: "none", fontSize: 14, fontWeight: 600, color: "#0f172a" }}
-                  placeholder="Buscar por folio, nombre o correo…"
+                  className="flex-1 bg-transparent text-sm font-bold text-slate-950 outline-none placeholder:text-slate-500"
+                  placeholder="Buscar por folio, nombre o correo..."
                   value={flightQuery}
                   onChange={(e) => { setFlightQuery(e.target.value); setFlightOpen(true); }}
                   onFocus={() => flightQuery.length >= 2 && setFlightOpen(true)}
                 />
-                {searching
-                  ? <Loader2 size={14} className="animate-spin" style={{ color: "#6366f1" }} />
-                  : <ChevronDown size={14} style={{ color: "#64748b", flexShrink: 0 }} />}
+                {searching ? <Loader2 size={14} className="animate-spin text-violet-600" /> : <ChevronDown size={14} className="shrink-0 text-slate-600" />}
               </div>
-
               {flightOpen && flightResults.length > 0 && (
-                <div
-                  className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border-2 border-slate-200"
-                  style={{ backgroundColor: "#fff", boxShadow: "0 16px 40px rgba(0,0,0,0.14)" }}
-                >
+                <div className="absolute left-0 right-0 top-full z-20 mt-2 max-h-64 overflow-y-auto rounded-2xl border-2 border-slate-300 bg-white shadow-2xl">
                   {flightResults.map((f) => {
                     const pax = Array.isArray(f.passengers) ? f.passengers : [];
                     return (
-                      <button
-                        key={f.id}
-                        className="flex w-full flex-col gap-0.5 px-4 py-3 text-left transition-colors hover:bg-violet-50"
-                        onClick={() => { setSelectedFlight(f); setFlightQuery(f.flight_folio ?? f.id); setFlightOpen(false); }}
-                      >
+                      <button key={f.id} className="flex w-full flex-col gap-0.5 px-4 py-3 text-left transition hover:bg-violet-50" onClick={() => { setSelectedFlight(f); setFlightQuery(f.flight_folio ?? f.id); setFlightOpen(false); }}>
                         <div className="flex items-center gap-2">
-                          <Plane size={13} style={{ color: "#6366f1", flexShrink: 0 }} />
-                          <span style={{ fontWeight: 800, fontSize: 13, color: "#0f172a" }}>{f.flight_folio ?? f.id}</span>
-                          <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "#6366f1" }}>
-                            ${f.total_amount?.toLocaleString("es-MX")} MXN
-                          </span>
+                          <Plane size={13} className="shrink-0 text-violet-600" />
+                          <span className="text-sm font-black text-slate-950">{f.flight_folio ?? f.id}</span>
+                          <span className="ml-auto text-[11px] font-black text-violet-700">${f.total_amount?.toLocaleString("es-MX")} MXN</span>
                         </div>
-                        <p style={{ paddingLeft: 21, fontSize: 11, color: "#475569", fontWeight: 600 }}>
-                          {f.profiles?.full_name ?? "Usuario"} · {f.flight_date}{f.return_flight_date ? " → " + f.return_flight_date : ""} · {f.fare_type}
-                        </p>
-                        {pax.length > 0 && (
-                          <p style={{ paddingLeft: 21, fontSize: 10, color: "#94a3b8" }}>
-                            Pax: {pax.map((p) => p.full_name).filter(Boolean).join(", ")}
-                          </p>
-                        )}
+                        <p className="pl-5 text-[11px] font-semibold text-slate-600">{f.profiles?.full_name ?? "Usuario"} · {f.flight_date}{f.return_flight_date ? " → " + f.return_flight_date : ""} · {f.fare_type}</p>
+                        {pax.length > 0 && <p className="pl-5 text-[10px] font-semibold text-slate-500">Pax: {pax.map((p) => p.full_name).filter(Boolean).join(", ")}</p>}
                       </button>
                     );
                   })}
                 </div>
               )}
             </div>
-
             {selectedFlight && (
-              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: "#ede9fe", border: "1.5px solid #a5b4fc" }}>
-                <Plane size={13} style={{ color: "#4f46e5", flexShrink: 0 }} />
-                <span style={{ fontSize: 12, fontWeight: 800, color: "#3730a3" }}>{selectedFlight.flight_folio ?? selectedFlight.id}</span>
-                <span style={{ fontSize: 11, color: "#6d28d9" }}>· {selectedFlight.profiles?.full_name} · {selectedFlight.flight_date}</span>
-                <button onClick={() => { setSelectedFlight(null); setFlightQuery(""); setContent(""); }} style={{ marginLeft: "auto", color: "#7c3aed" }}><X size={13} /></button>
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-3 py-2">
+                <Plane size={13} className="shrink-0 text-violet-700" />
+                <span className="text-xs font-black text-violet-800">{selectedFlight.flight_folio ?? selectedFlight.id}</span>
+                <span className="text-xs font-bold text-violet-700">· {selectedFlight.profiles?.full_name} · {selectedFlight.flight_date}</span>
+                <button onClick={() => { setSelectedFlight(null); setFlightQuery(""); }} className="ml-auto text-violet-600 hover:text-violet-900"><X size={12} /></button>
               </div>
             )}
           </div>
 
-          {/* Tarjeta CC */}
-          <div style={{ borderTop: "1.5px solid #e2e8f0", paddingTop: 16 }}>
-            <p style={S.fieldLabel}><CreditCard size={13} color="#4f46e5" /> Tarjeta de pago (CC) <span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "#64748b" }}>(opcional)</span></p>
-
-            {/* Número */}
+          <div>
+            <label style={S.fieldLabel}><CreditCard size={12} /> Tarjeta de pago (CC) — opcional</label>
             <div className="mb-3">
               <p style={S.subLabel}>Número de tarjeta (16 dígitos)</p>
               <div className="relative">
-                <input
-                  value={formatCardDisplay(ccNumber)}
-                  onChange={(e) => setCcNumber(e.target.value.replace(/\D/g, "").slice(0, 16))}
-                  placeholder="0000 0000 0000 0000"
-                  inputMode="numeric"
-                  style={{
-                    ...S.input,
-                    fontFamily: "monospace",
-                    letterSpacing: "0.14em",
-                    fontSize: 16,
-                    fontWeight: 700,
-                    borderColor: ccNumber.replace(/\D/g, "").length >= 6 ? "#6366f1" : "#cbd5e1",
-                    paddingRight: 40,
-                  }}
-                />
-                {binLoading && <Loader2 size={14} className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin" style={{ color: "#6366f1" }} />}
+                <input value={formatCardDisplay(ccNumber)} onChange={(e) => setCcNumber(e.target.value.replace(/\D/g, "").slice(0, 16))} placeholder="0000 0000 0000 0000" style={{ ...S.input, fontFamily: "monospace", letterSpacing: "0.08em" }} inputMode="numeric" />
+                {binLoading && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-violet-600" />}
               </div>
               {binInfo && (
-                <div className="mt-1.5 flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: "#ede9fe", border: "1.5px solid #a5b4fc" }}>
-                  <CreditCard size={12} style={{ color: "#4f46e5" }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#3730a3" }}>{binInfo}</span>
-                  {ccBank && <span style={{ marginLeft: "auto", borderRadius: 8, backgroundColor: "#c7d2fe", padding: "2px 8px", fontSize: 10, fontWeight: 800, color: "#3730a3" }}>{ccBank}</span>}
+                <div className="mt-2 flex items-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-3 py-2">
+                  <CreditCard size={12} className="text-violet-700" />
+                  <span className="text-[11px] font-black text-violet-800">{binInfo}</span>
+                  {ccBank && <span className="ml-auto rounded-lg bg-violet-100 px-2 py-0.5 text-[10px] font-black text-violet-700">{ccBank}</span>}
                 </div>
               )}
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p style={S.subLabel}>Nombre del titular</p>
-                <input value={ccHolder} onChange={(e) => setCcHolder(e.target.value)} placeholder="Nombre completo" maxLength={80} style={S.input} />
-              </div>
-              <div>
-                <p style={S.subLabel}>Dirección de facturación</p>
-                <input value={ccAddress} onChange={(e) => setCcAddress(e.target.value)} placeholder="Ciudad, Estado, País" maxLength={120} style={S.input} />
-              </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label="Nombre del titular" value={ccHolder} onChange={setCcHolder} placeholder="Nombre completo" maxLength={80} />
+              <Field label="Dirección de facturación" value={ccAddress} onChange={setCcAddress} placeholder="Ciudad, Estado, País" maxLength={120} />
             </div>
           </div>
 
-          {/* Fecha cargo + Sitio */}
-          <div className="grid grid-cols-2 gap-3" style={{ borderTop: "1.5px solid #e2e8f0", paddingTop: 16 }}>
+          <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <p style={S.fieldLabel}><Calendar size={13} color="#4f46e5" /> Fecha del cargo</p>
+              <label style={S.fieldLabel}><Calendar size={12} /> Fecha del cargo</label>
               <input type="date" value={chargeDate} onChange={(e) => setChargeDate(e.target.value)} style={S.input} />
             </div>
             <div>
-              <p style={S.fieldLabel}><LinkIcon size={13} color="#4f46e5" /> Sitio / URL</p>
+              <label style={S.fieldLabel}><LinkIcon size={12} /> Sitio / URL</label>
               <input type="url" value={siteUrl} onChange={(e) => setSiteUrl(e.target.value)} placeholder="https://" style={S.input} />
             </div>
           </div>
 
-          {/* Etiqueta */}
-          <div style={{ borderTop: "1.5px solid #e2e8f0", paddingTop: 16 }}>
-            <p style={S.fieldLabel}><Tag size={13} color="#4f46e5" /> Etiqueta</p>
+          <div>
+            <label style={S.fieldLabel}><Tag size={12} /> Etiqueta</label>
             <div className="flex flex-wrap gap-2">
               {(Object.entries(LABEL_CONFIG) as [WorkspaceLabel, typeof LABEL_CONFIG[WorkspaceLabel]][]).map(([key, cfg]) => (
-                <button
-                  key={key}
-                  onClick={() => setLabel(key)}
-                  className="flex items-center gap-1.5 rounded-2xl border-2 px-4 py-2 text-xs font-black uppercase tracking-wider transition-all"
-                  style={{
-                    backgroundColor: label === key ? cfg.bg  : "#f1f5f9",
-                    color:           label === key ? cfg.text : "#334155",
-                    borderColor:     label === key ? cfg.border : "#cbd5e1",
-                    transform:       label === key ? "scale(1.05)" : "scale(1)",
-                    fontWeight: 800,
-                  }}
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: label === key ? cfg.dot : "#94a3b8" }} />
+                <button key={key} onClick={() => setLabel(key)} className="flex items-center gap-1.5 rounded-2xl border-2 px-4 py-2 text-xs font-black uppercase tracking-wider transition-all hover:-translate-y-0.5" style={{ backgroundColor: label === key ? cfg.bg : "#ffffff", color: label === key ? cfg.text : "#334155", borderColor: label === key ? cfg.border : "#cbd5e1", transform: label === key ? "scale(1.03)" : "scale(1)" }}>
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: label === key ? cfg.dot : "#64748b" }} />
                   {cfg.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Contenido */}
-          <div style={{ borderTop: "1.5px solid #e2e8f0", paddingTop: 16 }}>
-            <p style={S.fieldLabel}><NotebookPen size={13} color="#4f46e5" /> Contenido de la nota</p>
-            <textarea
-              rows={10}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Escribe aquí los detalles del caso…"
-              style={{
-                width: "100%",
-                resize: "vertical",
-                borderRadius: 16,
-                border: "2px solid #cbd5e1",
-                padding: 16,
-                fontFamily: "monospace",
-                fontSize: 13,
-                lineHeight: 1.7,
-                outline: "none",
-                backgroundColor: "#f8fafc",
-                color: "#0f172a",
-                minHeight: 160,
-              }}
-            />
-            <p style={{ textAlign: "right", fontSize: 11, color: "#64748b", marginTop: 4, fontWeight: 600 }}>{content.length} caracteres</p>
+          <div>
+            <label style={S.fieldLabel}><NotebookPen size={12} /> Contenido de la nota</label>
+            <textarea rows={10} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Escribe aquí los detalles del caso..." style={{ ...S.input, minHeight: 180, resize: "vertical", padding: 16, fontFamily: "monospace", lineHeight: 1.6 }} />
+            <p className="mt-1 text-right text-[11px] font-bold text-slate-600">{content.length} caracteres · guardado automático local</p>
           </div>
 
-          {err && (
-            <div className="flex items-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: "#fef2f2", border: "1.5px solid #fca5a5" }}>
-              <AlertCircle size={14} style={{ color: "#dc2626" }} />
-              <p style={{ fontSize: 12, fontWeight: 700, color: "#b91c1c" }}>{err}</p>
-            </div>
-          )}
-          {saved && (
-            <div className="flex items-center gap-2 rounded-xl px-4 py-3" style={{ backgroundColor: "#f0fdf4", border: "1.5px solid #86efac" }}>
-              <CheckCircle2 size={14} style={{ color: "#16a34a" }} />
-              <p style={{ fontSize: 12, fontWeight: 800, color: "#15803d" }}>¡Nota guardada exitosamente!</p>
-            </div>
-          )}
+          {err && <div className="flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3"><AlertCircle size={14} className="text-red-600" /><p className="text-xs font-bold text-red-800">{err}</p></div>}
+          {saved && <div className="flex items-center gap-2 rounded-xl border-2 border-green-200 bg-green-50 px-4 py-3"><CheckCircle2 size={14} className="text-green-700" /><p className="text-xs font-black text-green-800">Nota guardada exitosamente.</p></div>}
         </div>
 
-        {/* ── Footer ── */}
-        <div
-          className="flex items-center justify-between px-6 py-4"
-          style={{ borderTop: "2px solid #e2e8f0", backgroundColor: "#f8fafc" }}
-        >
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={handleClose}
-            className="rounded-2xl border-2 px-5 py-2.5 text-sm font-bold transition-all hover:border-slate-400 hover:bg-slate-100"
-            style={{ borderColor: "#cbd5e1", backgroundColor: "#fff", color: "#334155" }}
-          >
+        <div className="flex items-center justify-between gap-3 border-t border-slate-300 bg-slate-100 px-6 py-4">
+          <button onClick={handleClose} className="rounded-2xl border-2 border-slate-400 bg-white px-5 py-2.5 text-sm font-black text-slate-800 transition hover:border-slate-600 hover:bg-slate-50">
             Cancelar
           </button>
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={handleSave}
-            disabled={isPending || !content.trim()}
-            className="flex items-center gap-2 rounded-2xl px-6 py-2.5 text-sm font-black text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg, #6366f1, #7c3aed)", boxShadow: "0 4px 14px rgba(99,102,241,0.4)" }}
-          >
+          <button onClick={handleSave} disabled={isPending || !content.trim()} className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 px-6 py-2.5 text-sm font-black text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
             {isPending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-            {isPending ? "Guardando…" : "Guardar nota"}
+            {isPending ? "Guardando..." : "Guardar nota"}
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, placeholder, maxLength }: { label: string; value: string; onChange: (value: string) => void; placeholder: string; maxLength: number }) {
+  return (
+    <div>
+      <p style={S.subLabel}>{label}</p>
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} style={S.input} />
     </div>
   );
 }
