@@ -95,7 +95,7 @@ export function SupportChat({ userId, userName }: { userId: string; userName?: s
     }, []);
     return (
         // hidden en móvil — en móvil se usan las opciones del menú del Sidebar
-        <div className="hidden md:flex fixed bottom-6 right-6 z-50 flex-col items-end gap-2">
+        <div className="hidden md:flex fixed bottom-6 left-80 z-50 flex-col items-end gap-2">
             {open && (
                 <div className={`flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-sky-950 shadow-2xl transition-all duration-200 ${minimized ? 'h-14 w-72' : 'h-[480px] w-80 lg:w-96'
                     }`}>
@@ -124,7 +124,7 @@ export function SupportChat({ userId, userName }: { userId: string; userName?: s
                                 {showOptions && (
                                     <>
                                         <div className="fixed inset-0 z-[60]" onClick={() => setShowOptions(false)} />
-                                        <div className="absolute bottom-full right-0 z-[70] mb-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-sky-900 shadow-2xl">
+                                        <div className="absolute bottom-full right-0 z-[70] mt-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-sky-900 shadow-2xl">
                                             <p className="px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-sky-400/60">
                                                 Otras opciones
                                             </p>
@@ -235,12 +235,13 @@ export function SupportChat({ userId, userName }: { userId: string; userName?: s
             )}
 
             {/* Botón flotante */}
+            {/* Botón flotante — solo icono */}
             <button
                 onClick={() => { setOpen((v) => !v); setMinimized(false); }}
-                className="flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-black text-white shadow-2xl shadow-sky-900/50 transition hover:bg-sky-500 active:scale-95"
+                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-600 text-white shadow-2xl shadow-sky-900/50 transition hover:bg-sky-500 active:scale-95"
+                aria-label={open ? 'Cerrar soporte' : 'Abrir soporte'}
             >
-                {open ? <X size={17} /> : <Headphones size={17} />}
-                {!open && <span>¿Necesitas ayuda?</span>}
+                {open ? <X size={18} /> : <Headphones size={18} />}
             </button>
         </div>
     );
