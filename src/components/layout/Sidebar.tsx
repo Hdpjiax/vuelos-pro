@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   Plane, LayoutDashboard, CreditCard, History, MessageSquare,
-  QrCode, Users, Send, CalendarDays, Bell, Settings, Rocket,
+  ShieldCheck, Users, Send, CalendarDays, Bell, Settings,
   UserCircle, BarChart3, WalletCards, Search, Files, Menu, X, LogOut, Tag,
   Sun, Moon, Sparkles,
 } from "lucide-react";
@@ -31,7 +31,6 @@ const adminItems: NavItem[] = [
   { href: "/admin/archivos", label: "Archivos", icon: <Files size={18} /> },
   { href: "/admin/configuracion", label: "Configuración", shortLabel: "Config", icon: <Settings size={18} /> },
   { href: "/admin/perfil", label: "Mi perfil", shortLabel: "Perfil", icon: <UserCircle size={18} /> },
-  { href: "/admin/produccion", label: "Producción", shortLabel: "Prod", icon: <Rocket size={18} /> },
 ];
 
 const userItems: NavItem[] = [
@@ -73,8 +72,8 @@ function useThemeMode() {
 function Brand({ role }: { role: "admin" | "user" }) {
   return (
     <div className="group flex items-center gap-3">
-      <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-violet-500 text-white shadow-xl shadow-sky-200/70 ring-1 ring-white/70 transition-transform duration-300 group-hover:scale-105 dark:from-cyan-400 dark:via-blue-500 dark:to-violet-600 dark:shadow-cyan-950/40 dark:ring-white/10">
-        {role === "admin" ? <QrCode size={23} /> : <CalendarDays size={23} />}
+      <div className="brand-logo-icon relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-fuchsia-600 text-white shadow-xl shadow-orange-200/70 ring-1 ring-white/70 transition-transform duration-300 group-hover:scale-105 dark:from-cyan-300 dark:via-violet-500 dark:to-fuchsia-500 dark:shadow-fuchsia-950/40 dark:ring-white/10">
+        {role === "admin" ? <ShieldCheck size={24} strokeWidth={2.6} /> : <CalendarDays size={24} strokeWidth={2.6} />}
       </div>
       <div className="min-w-0">
         <h1 className="text-xl font-black tracking-tight text-slate-950 dark:text-white">Vuelos<span className="text-sky-500 dark:text-cyan-300">Pro</span></h1>
