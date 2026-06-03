@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { CustomSelectField } from "@/components/ui/CustomSelectField";
 import { createClient } from "@/lib/supabase/server";
 import { buttonPrimary, buttonPrimarySmall, buttonSecondarySmall, inputClass, labelClass, panelClass } from "@/lib/styles";
 import { flightTypeLabel, formatCurrency, formatFlightFolio, formatDate, formatTime, getAmountToPay, statusLabel } from "@/lib/utils";
@@ -36,7 +37,6 @@ export default async function UserFlightsPage({ searchParams }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // ✅ Query centralizada en el repositorio
   const allFlights: FlightListItem[] = await getUserFlightsFiltered(supabase, user?.id ?? "", {
     status: activeStatus,
     from: query.from,
@@ -75,12 +75,12 @@ export default async function UserFlightsPage({ searchParams }: PageProps) {
         </div>
 
         <form className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_1.3fr_auto] xl:items-end">
-          <label className="space-y-2">
-            <span className={labelClass}>Estado</span>
-            <select className={inputClass} name="status" defaultValue={activeStatus}>
-              {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
+          <CustomSelectField
+            name="status"
+            label="Estado"
+            defaultValue={activeStatus}
+            options={statusOptions}
+          />
           <label className="space-y-2">
             <span className={labelClass}>Desde</span>
             <input className={inputClass} type="date" name="from" defaultValue={query.from ?? ""} />
