@@ -31,11 +31,19 @@ export async function GET(req: NextRequest) {
     const keyword = searchParams.get("keyword") ?? "";
     if (keyword.trim().length < 2) return NextResponse.json({ data: [] });
 
+    if (useMock) {
+      return NextResponse.json({ ...mockSearchAirports(keyword), meta: { source: "mock" } });
+    }
+
     try {
-      const data = useMock ? mockSearchAirports(keyword) : await searchSkyScrapperAirports(keyword);
-      return NextResponse.json({ ...data, meta: { source: useMock ? "mock" : "sky-scrapper" } });
+      const data = await searchSkyScrapperAirports(keyword);
+      return NextResponse.json({ ...data, meta: { source: "sky-scrapper" } });
     } catch (error) {
-      return errorResponse(error);
+      console.error("Sky Scrapper airport search failed", error);
+      return NextResponse.json({
+        ...mockSearchAirports(keyword),
+        meta: { source: "mock-fallback", reason: "airport-search-failed" },
+      });
     }
   }
 
@@ -59,32 +67,43 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "El origen y el destino deben ser diferentes." }, { status: 400 });
   }
 
+  if (useMock) {
+    return NextResponse.json({
+      ...mockSearchFlights({ origin, destination, departureDate, returnDate, adults }),
+      meta: { source: "mock", currency: "MXN" },
+    });
+  }
+
   try {
-    const data = useMock
-      ? mockSearchFlights({ origin, destination, departureDate, returnDate, adults })
-      : await searchSkyScrapperFlights({
-          originSkyId: origin,
-          destinationSkyId: destination,
-          originEntityId,
-          destinationEntityId,
-          departureDate,
-          returnDate,
-          adults,
-          children,
-          infants,
-          travelClass,
-          nonStop,
-          currency: "MXN",
-        });
+    const data = await searchSkyScrapperFlights({
+      originSkyId: origin,
+      destinationSkyId: destination,
+      originEntityId,
+      destinationEntityId,
+      departureDate,
+      returnDate,
+      adults,
+      children,
+      infants,
+      travelClass,
+      nonStop,
+      currency: "MXN",
+    });
 
     return NextResponse.json({
       ...data,
-      meta: {
-        source: useMock ? "mock" : "sky-scrapper",
-        currency: "MXN",
-      },
+      meta: { source: "sky-scrapper", currency: "MXN" },
     });
   } catch (error) {
+    console.error("Sky Scrapper flight search failed", error);
+
+    if (process.env.FLIGHT_SEARCH_ALLOW_FALLBACK !== "false") {
+      return NextResponse.json({
+        ...mockSearchFlights({ origin, destination, departureDate, returnDate, adults }),
+        meta: { source: "mock-fallback", currency: "MXN", reason: "flight-search-failed" },
+      });
+    }
+
     return errorResponse(error);
   }
 }
