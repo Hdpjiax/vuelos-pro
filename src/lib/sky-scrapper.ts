@@ -36,6 +36,7 @@ type NormalizedSegment = {
 
 type NormalizedOffer = {
   id: string;
+  bookingUrl?: string;
   price: { total: string; grandTotal: string; currency: string };
   itineraries: { duration: string; segments: NormalizedSegment[] }[];
   numberOfBookableSeats: number;
@@ -132,30 +133,12 @@ function normalizeAirport(item: unknown): NormalizedAirport | null {
   const navigation = asRecord(source.navigation);
   const relevant = asRecord(navigation.relevantFlightParams);
 
-  const skyId =
-    readString(source.skyId) ||
-    readString(relevant.skyId) ||
-    readString(source.iataCode) ||
-    readString(source.id);
-
+  const skyId = readString(source.skyId) || readString(relevant.skyId) || readString(source.iataCode) || readString(source.id);
   if (!skyId) return null;
 
-  const entityId =
-    readString(source.entityId) ||
-    readString(relevant.entityId) ||
-    readString(navigation.entityId);
-
-  const title =
-    readString(presentation.title) ||
-    readString(relevant.localizedName) ||
-    readString(source.name) ||
-    skyId;
-
-  const suggestionTitle =
-    readString(presentation.suggestionTitle) ||
-    readString(source.detailedName) ||
-    title;
-
+  const entityId = readString(source.entityId) || readString(relevant.entityId) || readString(navigation.entityId);
+  const title = readString(presentation.title) || readString(relevant.localizedName) || readString(source.name) || skyId;
+  const suggestionTitle = readString(presentation.suggestionTitle) || readString(source.detailedName) || title;
   const subtitle = readString(presentation.subtitle) || readString(source.countryName);
 
   return {
@@ -204,15 +187,7 @@ export async function searchSkyScrapperAirports(keyword: string) {
 
 function extractPlaceCode(place: unknown, fallback?: string) {
   const item = asRecord(place);
-  return (
-    readString(item.displayCode) ||
-    readString(item.skyId) ||
-    readString(item.id) ||
-    readString(item.iata) ||
-    readString(item.iataCode) ||
-    fallback ||
-    "---"
-  );
+  return readString(item.displayCode) || readString(item.skyId) || readString(item.id) || readString(item.iata) || readString(item.iataCode) || fallback || "---";
 }
 
 function extractDateTime(value: unknown, fallback?: unknown) {
@@ -226,15 +201,7 @@ function getCarrier(rawSegment: Record<string, any>, rawLeg: Record<string, any>
   const carriersFromLeg = asRecord(rawLeg.carriers);
   const marketing = Array.isArray(carriersFromLeg.marketing) ? asRecord(carriersFromLeg.marketing[0]) : {};
   const carrier = Object.keys(carrierFromSegment).length ? carrierFromSegment : marketing;
-
-  const code =
-    readString(carrier.alternateId) ||
-    readString(carrier.displayCode) ||
-    readString(carrier.code) ||
-    readString(rawSegment.carrierCode) ||
-    readString(carrier.id) ||
-    "XX";
-
+  const code = readString(carrier.alternateId) || readString(carrier.displayCode) || readString(carrier.code) || readString(rawSegment.carrierCode) || readString(carrier.id) || "XX";
   const name = readString(carrier.name) || code;
   return { code, name };
 }
@@ -273,15 +240,48 @@ function normalizeLeg(rawLegValue: unknown, carriers: Record<string, string>) {
 
 function getPrice(rawOffer: Record<string, any>, currency: string) {
   const price = asRecord(rawOffer.price);
-  const amount =
-    readNumber(price.raw) ||
-    readNumber(price.amount) ||
-    readNumber(price.total) ||
-    readNumber(price.grandTotal) ||
-    readNumber(rawOffer.price) ||
-    0;
-
+  const amount = readNumber(price.raw) || readNumber(price.amount) || readNumber(price.total) || readNumber(price.grandTotal) || readNumber(rawOffer.price) || 0;
   return amount.toFixed(2);
+}
+
+function normalizeUrl(value?: string) {
+  if (!value) return undefined;
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  if (value.startsWith("//")) return `https:${value}`;
+  return undefined;
+}
+
+function extractBookingUrl(rawOffer: Record<string, any>) {
+  const direct = normalizeUrl(
+    readString(rawOffer.bookingUrl) ||
+    readString(rawOffer.deepLink) ||
+    readString(rawOffer.deeplink) ||
+    readString(rawOffer.url) ||
+    readString(rawOffer.shareUrl),
+  );
+  if (direct) return direct;
+
+  const pricingOptions = Array.isArray(rawOffer.pricingOptions) ? rawOffer.pricingOptions : [];
+  for (const option of pricingOptions) {
+    const item = asRecord(option);
+    const optionUrl = normalizeUrl(readString(item.bookingUrl) || readString(item.deepLink) || readString(item.deeplink) || readString(item.url));
+    if (optionUrl) return optionUrl;
+    const agents = Array.isArray(item.agents) ? item.agents : [];
+    for (const agent of agents) {
+      const agentRecord = asRecord(agent);
+      const agentUrl = normalizeUrl(readString(agentRecord.bookingUrl) || readString(agentRecord.deepLink) || readString(agentRecord.deeplink) || readString(agentRecord.url));
+      if (agentUrl) return agentUrl;
+    }
+  }
+
+  const bookingOptions = Array.isArray(rawOffer.bookingOptions) ? rawOffer.bookingOptions : [];
+  for (const option of bookingOptions) {
+    const item = asRecord(option);
+    const optionUrl = normalizeUrl(readString(item.bookingUrl) || readString(item.deepLink) || readString(item.deeplink) || readString(item.url));
+    if (optionUrl) return optionUrl;
+  }
+
+  return undefined;
 }
 
 function normalizeFlightResponse(payload: unknown, params: SkyScrapperFlightSearchParams) {
@@ -313,6 +313,7 @@ function normalizeFlightResponse(payload: unknown, params: SkyScrapperFlightSear
 
     return {
       id: readString(rawOffer.id) || `sky-${index}`,
+      bookingUrl: extractBookingUrl(rawOffer),
       price: { total: grandTotal, grandTotal, currency },
       itineraries,
       numberOfBookableSeats: readNumber(rawOffer.numberOfBookableSeats) || 9,
