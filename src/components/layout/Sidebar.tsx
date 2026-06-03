@@ -7,7 +7,7 @@ import {
   Plane, LayoutDashboard, CreditCard, History, MessageSquare,
   ShieldCheck, Users, Send, CalendarDays, Bell, Settings,
   UserCircle, BarChart3, WalletCards, Search, Files, Menu, X, LogOut, Tag,
-  Sun, Moon, Sparkles,
+  Sun, Moon, Sparkles, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -20,6 +20,7 @@ const adminItems: NavItem[] = [
   { href: "/admin/dashboard", label: "General / Estadísticas", shortLabel: "General", icon: <LayoutDashboard size={18} /> },
   { href: "/admin/vuelos", label: "Vuelos recibidos", shortLabel: "Vuelos", icon: <Plane size={18} /> },
   { href: "/admin/cotizar", label: "Cotiza tu vuelo", shortLabel: "Cotizar", icon: <Tag size={18} /> },
+  { href: "/admin/tools/contact-patterns", label: "Tools", shortLabel: "Tools", icon: <Wrench size={18} /> },
   { href: "/admin/pagos", label: "Validar pagos", shortLabel: "Pagos", icon: <CreditCard size={18} /> },
   { href: "/admin/mensajes", label: "Mensajes", icon: <MessageSquare size={18} /> },
   { href: "/admin/notificaciones", label: "Notificaciones", shortLabel: "Avisos", icon: <Bell size={18} /> },
