@@ -4,7 +4,7 @@ import { useState, useTransition, useCallback } from "react";
 import {
   NotebookPen, Plus, Search, Trash2,
   Plane, CreditCard, Clock, ChevronDown, RefreshCw,
-  Calendar, Link as LinkIcon, Building2,
+  Calendar, Link as LinkIcon, Building2, MapPin, Users,
 } from "lucide-react";
 import { WorkspaceNoteModal, LabelBadge, LABEL_CONFIG, type WorkspaceLabel } from "./WorkspaceNoteModal";
 import { getWorkspaceNotesAction, deleteWorkspaceNoteAction } from "@/app/admin/tools/workspace/actions";
@@ -26,19 +26,32 @@ export interface WorkspaceNoteRow {
 }
 
 const LABEL_FILTERS = [
-  { value: "todas",     label: "Todas" },
-  { value: "aprobado",  label: "Aprobado" },
+  { value: "todas", label: "Todas" },
+  { value: "aprobado", label: "Aprobado" },
   { value: "declinado", label: "Declinado" },
-  { value: "ban",       label: "Ban" },
-  { value: "riesgoso",  label: "Riesgoso" },
+  { value: "ban", label: "Ban" },
+  { value: "riesgoso", label: "Riesgoso" },
 ];
 
+function passengerName(passenger: any) {
+  return passenger?.full_name?.trim() || "N/A";
+}
+
+function passengerBirthDate(passenger: any) {
+  return passenger?.birth_date?.trim() || "Sin fecha de nacimiento";
+}
+
+function getPassengers(flightObj: Record<string, unknown> | null) {
+  const passengers = (flightObj as any)?.passengers;
+  return Array.isArray(passengers) ? passengers : [];
+}
+
 export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNoteRow[] }) {
-  const [notes, setNotes]         = useState<WorkspaceNoteRow[]>(initialNotes);
+  const [notes, setNotes] = useState<WorkspaceNoteRow[]>(initialNotes);
   const [modalOpen, setModalOpen] = useState(false);
-  const [labelFilter, setFilter]  = useState("todas");
-  const [search, setSearch]       = useState("");
-  const [isPending, start]        = useTransition();
+  const [labelFilter, setFilter] = useState("todas");
+  const [search, setSearch] = useState("");
+  const [isPending, start] = useTransition();
 
   const reload = useCallback(() => {
     start(async () => {
@@ -72,16 +85,16 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNoteRo
   const filtered = notes.filter((n) => {
     const matchLabel = labelFilter === "todas" || n.label === labelFilter;
     const fl = getFlightObj(n) as any;
+    const passengers = getPassengers(fl).map((p) => `${passengerName(p)} ${passengerBirthDate(p)}`).join(" ");
     const matchSearch = !search || [
-      n.content, n.cc_number, n.cc_holder, n.cc_bank, n.site_url,
-      fl?.flight_folio,
+      n.content, n.cc_number, n.cc_holder, n.cc_address, n.cc_bank, n.site_url,
+      fl?.flight_folio, passengers,
     ].filter(Boolean).join(" ").toLowerCase().includes(search.toLowerCase());
     return matchLabel && matchSearch;
   });
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-700 text-white shadow-lg">
@@ -100,7 +113,6 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNoteRo
         </button>
       </div>
 
-      {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3 rounded-3xl border-2 border-slate-200 p-4" style={{ backgroundColor: "#ffffff" }}>
         <div className="flex flex-wrap gap-2">
           {LABEL_FILTERS.map((f) => {
@@ -112,8 +124,8 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNoteRo
                 className="flex items-center gap-1.5 rounded-2xl border-2 px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-all"
                 style={{
                   backgroundColor: labelFilter === f.value ? (cfg?.bg ?? "#6366f1") : "#f8fafc",
-                  color:           labelFilter === f.value ? (cfg?.text ?? "#fff") : "#94a3b8",
-                  borderColor:     labelFilter === f.value ? (cfg?.border ?? "#6366f1") : "#e2e8f0",
+                  color: labelFilter === f.value ? (cfg?.text ?? "#fff") : "#94a3b8",
+                  borderColor: labelFilter === f.value ? (cfg?.border ?? "#6366f1") : "#e2e8f0",
                 }}
               >
                 {cfg && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cfg.dot }} />}
@@ -127,9 +139,9 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNoteRo
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar notas, CC, folio…"
+            placeholder="Buscar notas, CC, folio, pasajeros…"
             className="rounded-2xl border-2 py-2 pl-8 pr-4 text-xs font-semibold outline-none focus:ring-2 focus:ring-violet-300"
-            style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0", color: "#0f172a", width: 220 }}
+            style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0", color: "#0f172a", width: 250 }}
           />
         </div>
         <button onClick={reload} disabled={isPending}
@@ -164,7 +176,6 @@ export function WorkspaceBoard({ initialNotes }: { initialNotes: WorkspaceNoteRo
   );
 }
 
-// ── NoteCard ────────────────────────────────────────────────────────────────────────
 function NoteCard({ note, flightObj, onDelete, maskCard }: {
   note: WorkspaceNoteRow;
   flightObj: Record<string, unknown> | null;
@@ -174,10 +185,11 @@ function NoteCard({ note, flightObj, onDelete, maskCard }: {
   const [expanded, setExpanded] = useState(false);
   const cfg = LABEL_CONFIG[note.label];
   const fl = flightObj as any;
+  const passengers = getPassengers(flightObj);
 
   return (
     <div className="flex flex-col rounded-3xl border-2 shadow-md transition-all hover:shadow-lg" style={{ backgroundColor: "#ffffff", borderColor: cfg.border }}>
-      <div className="flex items-center justify-between rounded-t-[22px] px-4 py-2" style={{ backgroundColor:"#eeff00" }}>
+      <div className="flex items-center justify-between rounded-t-[22px] px-4 py-2" style={{ backgroundColor: "#eeff00" }}>
         <LabelBadge label={note.label} />
         <button onClick={() => onDelete(note.id)} className="rounded-lg p-1.5 hover:bg-red-100 hover:text-red-600" style={{ color: cfg.text }}>
           <Trash2 size={13} />
@@ -195,13 +207,18 @@ function NoteCard({ note, flightObj, onDelete, maskCard }: {
           </div>
         )}
 
-        {(note.cc_number || note.cc_holder) && (
+        {(note.cc_number || note.cc_holder || note.cc_address) && (
           <div className="flex items-start gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
             <CreditCard size={12} className="mt-0.5 shrink-0 text-slate-400" />
-            <div className="min-w-0">
+            <div className="min-w-0 space-y-1">
               {note.cc_number && <p className="font-mono text-[11px] font-bold text-slate-700">{maskCard(note.cc_number)}</p>}
-              {note.cc_holder && <p className="truncate text-[10px] text-slate-500">{note.cc_holder}</p>}
-              {note.cc_bank   && (
+              {note.cc_holder && <p className="truncate text-[10px] font-bold text-slate-600">{note.cc_holder}</p>}
+              {note.cc_address && (
+                <p className="flex items-start gap-1 text-[10px] font-semibold leading-4 text-slate-500">
+                  <MapPin size={9} className="mt-0.5 shrink-0" /> Dirección de facturación: {note.cc_address}
+                </p>
+              )}
+              {note.cc_bank && (
                 <p className="flex items-center gap-1 text-[10px] text-slate-400">
                   <Building2 size={9} /> {note.cc_bank}
                 </p>
@@ -211,6 +228,21 @@ function NoteCard({ note, flightObj, onDelete, maskCard }: {
                   <Calendar size={9} /> Cargo: {note.cc_charge_date}
                 </p>
               )}
+            </div>
+          </div>
+        )}
+
+        {passengers.length > 0 && (
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2">
+            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700">
+              <Users size={11} /> Pasajeros
+            </div>
+            <div className="space-y-1">
+              {passengers.map((passenger, index) => (
+                <p key={`${passengerName(passenger)}-${index}`} className="text-[10px] font-semibold leading-4 text-emerald-900">
+                  {index + 1}. {passengerName(passenger)} · Nacimiento: {passengerBirthDate(passenger)}
+                </p>
+              ))}
             </div>
           </div>
         )}
