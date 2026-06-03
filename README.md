@@ -1,4 +1,4 @@
-# VuelosPro - Etapa 12
+# VuelosPro - Softaware para enviar, cotizar vuelos
 
 Etapa enfocada en seguimiento operativo, automatizaciones, notas internas y control de archivos.
 
@@ -70,7 +70,7 @@ git push -u origin main --force
 Vercel desplegara automaticamente en:
 
 ```txt
-https://vuelos-pro.vercel.app
+https://vuelos-gn.com
 ```
 
 ## Rutas principales para probar
