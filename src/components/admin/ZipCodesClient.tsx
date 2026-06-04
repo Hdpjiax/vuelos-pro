@@ -22,7 +22,7 @@ function fmtArea(n: number | null) {
 function PropertyCard({ p, mode }: { p: ZillowProperty; mode: "sale" | "rent" }) {
   const accent = mode === "sale"
     ? { grad: "from-sky-500 to-violet-500", badge: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300", dot: "bg-sky-500" }
-    : { grad: "from-emerald-500 to-teal-500", badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300", dot: "bg-emerald-500" };
+    : { grad: "from-emerald-500 to-teal-500", badge: "bg-emerald-400 text-white dark:bg-emerald-900/40 dark:text-emerald-300", dot: "bg-emerald-500" };
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-white/5">
@@ -56,27 +56,27 @@ function PropertyCard({ p, mode }: { p: ZillowProperty; mode: "sale" | "rent" })
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start gap-1.5">
           <MapPin size={13} className="mt-0.5 shrink-0 text-slate-400" />
-          <p className="text-sm font-bold leading-snug text-slate-800 dark:text-slate-100">{p.address || "Sin dirección"}</p>
+          <p className="text-md font-bold leading-snug text-slate-800 text-slate-100">{p.address || "Sin dirección"}</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
           {p.bedrooms != null && (
-            <span className="flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-white/10 dark:text-slate-300">
+            <span className="flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-white/10 ">
               <Bed size={11} /> {p.bedrooms} hab
             </span>
           )}
           {p.bathrooms != null && (
-            <span className="flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-white/10 dark:text-slate-300">
+            <span className="flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-white/10 ">
               <Bath size={11} /> {p.bathrooms} baños
             </span>
           )}
           {p.livingArea != null && (
-            <span className="flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-white/10 dark:text-slate-300">
+            <span className="flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-white/10 ">
               <Maximize2 size={11} /> {fmtArea(p.livingArea)}
             </span>
           )}
           {p.daysOnZillow != null && (
-            <span className="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+            <span className="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 dark:bg-amber-900/30 ">
               <Calendar size={11} /> {p.daysOnZillow}d
             </span>
           )}
@@ -146,7 +146,7 @@ export function ZipCodesClient() {
           <Home size={22} />
         </div>
         <div>
-          <h2 className="text-xl font-black text-slate-900 dark:text-white">ZIP Codes</h2>
+          <h2 className="text-xl font-black text-slate-900 ">ZIP Codes</h2>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
             Propiedades en venta y renta por código postal · datos de Zillow
           </p>
@@ -157,7 +157,7 @@ export function ZipCodesClient() {
       <div className="flex flex-col gap-3 rounded-3xl border-2 border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5 sm:flex-row sm:items-end">
         <div className="flex-1">
           {/* LABEL: negro duro en light, blanco en dark */}
-          <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+          <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-900">
             Código Postal (ZIP)
           </label>
           <div className="flex items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-4 py-2.5 focus-within:border-sky-400 dark:border-white/15 dark:bg-slate-800">
@@ -170,7 +170,7 @@ export function ZipCodesClient() {
               placeholder="Ej. 90210, 10001, 33101…"
               inputMode="numeric"
               maxLength={5}
-              className="flex-1 bg-transparent text-lg font-black tracking-widest text-slate-900 outline-none placeholder:text-base placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
+              className="flex-1 bg-transparent text-lg font-black tracking-widest text-slate-900 outline-none placeholder:text-base placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
             {zip.length > 0 && (
               <span className={`text-xs font-bold ${zip.length === 5 ? "text-sky-500" : "text-slate-400"}`}>
@@ -205,16 +205,17 @@ export function ZipCodesClient() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setTab("sale")}
-              className={`flex items-center gap-2 rounded-2xl border-2 px-5 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5 ${
+              className={`flex items-center gap-2 rounded-2xl border-2 px-5 py-2.5
+                font-black transition-all hover:-translate-y-0.5 ${
                 tab === "sale"
-                  ? "border-transparent bg-gradient-to-r from-sky-400 to-violet-500 text-white shadow-lg"
-                  : "border-slate-200 bg-slate-100 text-slate-700 hover:border-sky-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                  ? " text-[31px] border-transparent bg-gradient-to-r from-sky-400 to-violet-500 text-black font-black shadow-lg "
+                  : " text-[21px]  border-slate-200 bg-slate-100 text-slate-700 hover:border-sky-300 dark:border-white/10 dark:bg-white/5"
               }`}
             >
-              <Home size={15} />
+              <Home size={19} />
               En Venta
-              <span className={`rounded-lg px-2 py-0.5 text-[11px] font-black ${
-                tab === "sale" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-400"
+              <span className={`rounded-lg px-2 py-0.5 text-[14px] font-black ${
+                tab === "sale" ? "bg-white/20" : "bg-slate-200 text-slate-600 dark:bg-white/10 "
               }`}>{totSale.toLocaleString()}</span>
             </button>
 
@@ -222,14 +223,14 @@ export function ZipCodesClient() {
               onClick={() => setTab("rent")}
               className={`flex items-center gap-2 rounded-2xl border-2 px-5 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5 ${
                 tab === "rent"
-                  ? "border-transparent bg-gradient-to-r from-emerald-400 to-teal-500 text-white shadow-lg"
-                  : "border-slate-200 bg-slate-100 text-slate-700 hover:border-emerald-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                  ? "border-transparent bg-gradient-to-r from-emerald-300 to-teal-500 shadow-lg"
+                  : "border-slate-200 bg-slate-100 text-slate-700 hover:border-emerald-300 dark:border-white/10 dark:bg-white/5 "
               }`}
             >
               <Building2 size={15} />
               En Renta
-              <span className={`rounded-lg px-2 py-0.5 text-[11px] font-black ${
-                tab === "rent" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-400"
+              <span className={`rounded-lg px-2 py-0.5 text-[14px] font-black ${
+                tab === "rent" ? "bg-white/20 " : "bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-400"
               }`}>{totRent.toLocaleString()}</span>
             </button>
 
@@ -263,7 +264,7 @@ export function ZipCodesClient() {
             <MapPin size={30} className="text-sky-400" />
           </div>
           <div>
-            <p className="text-base font-black text-slate-700 dark:text-slate-300">Ingresa un ZIP code para comenzar</p>
+            <p className="text-base font-black text-slate-700 ">Ingresa un ZIP code para comenzar</p>
             <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
               Ejemplos: <span className="font-bold text-sky-500">90210</span> · <span className="font-bold text-sky-500">10001</span> · <span className="font-bold text-sky-500">33101</span> · <span className="font-bold text-sky-500">60601</span>
             </p>
