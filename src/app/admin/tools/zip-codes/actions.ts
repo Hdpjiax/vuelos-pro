@@ -22,35 +22,39 @@ type ZillowResult = {
   error?: string;
 };
 
-const RAPID_HOST = "zillow-com1.p.rapidapi.com";
+const RAPID_HOST = "zillow-scraper-api.p.rapidapi.com";
+
+function buildAddress(p: any): string {
+  const parts = [
+    p.address ?? p.streetAddress ?? "",
+    p.city ?? "",
+    p.state ?? "",
+    p.zipcode ?? p.zip ?? "",
+  ].filter(Boolean);
+  return parts.join(", ") || "Sin dirección";
+}
 
 function parseProps(raw: any[]): ZillowProperty[] {
   return (raw ?? []).map((p: any) => ({
-    zpid:         String(p.zpid ?? p.id ?? ""),
-    address:      [
-      p.streetAddress ?? p.address ?? "",
-      p.city ?? "",
-      p.state ?? "",
-      p.zipcode ?? "",
-    ].filter(Boolean).join(", "),
-    price:        p.price ?? p.unformattedPrice ?? null,
+    zpid:         String(p.zpid ?? p.id ?? Math.random()),
+    address:      buildAddress(p),
+    price:        p.price ?? p.list_price ?? p.unformattedPrice ?? null,
     bedrooms:     p.bedrooms ?? p.beds ?? null,
     bathrooms:    p.bathrooms ?? p.baths ?? null,
-    livingArea:   p.livingArea ?? p.area ?? null,
-    imgSrc:       p.imgSrc ?? p.miniCardPhotos?.[0]?.url ?? null,
-    detailUrl:    p.detailUrl
-      ? (p.detailUrl.startsWith("http") ? p.detailUrl : `https://www.zillow.com${p.detailUrl}`)
+    livingArea:   p.livingArea ?? p.sqft ?? p.area ?? null,
+    imgSrc:       p.imgSrc ?? p.image_url ?? p.miniCardPhotos?.[0]?.url ?? null,
+    detailUrl:    p.detailUrl ?? p.listing_url ?? p.url
+      ? ((p.detailUrl ?? p.listing_url ?? p.url).startsWith("http")
+          ? (p.detailUrl ?? p.listing_url ?? p.url)
+          : `https://www.zillow.com${p.detailUrl ?? p.listing_url ?? p.url}`)
       : `https://www.zillow.com/homes/${p.zpid ?? p.id}_zpid/`,
     zestimate:    p.zestimate ?? null,
-    propertyType: p.propertyType ?? p.homeType ?? null,
-    daysOnZillow: p.daysOnZillow ?? null,
+    propertyType: p.propertyType ?? p.homeType ?? p.home_type ?? null,
+    daysOnZillow: p.daysOnZillow ?? p.days_on_market ?? null,
   }));
 }
 
-async function fetchZillow(
-  endpoint: string,
-  params: Record<string, string>
-): Promise<any> {
+async function fetchZillow(endpoint: string, params: Record<string, string>): Promise<any> {
   const url = new URL(`https://${RAPID_HOST}/${endpoint}`);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
@@ -66,7 +70,8 @@ async function fetchZillow(
     });
 
     if (!res.ok) {
-      console.error(`[Zillow] ${res.status} ${res.statusText} \u2192 ${url.toString()}`);
+      const body = await res.text().catch(() => "");
+      console.error(`[Zillow] ${res.status} ${res.statusText} \u2192 ${endpoint}`, body.slice(0, 200));
       return null;
     }
     return res.json();
@@ -78,45 +83,48 @@ async function fetchZillow(
 
 export async function searchZipCodeAction(zip: string): Promise<ZillowResult> {
   if (!zip.match(/^\d{5}$/)) {
-    return { forSale: [], forRent: [], totalForSale: 0, totalForRent: 0, error: "ZIP code inv\u00e1lido (debe ser 5 d\u00edgitos)." };
+    return { forSale: [], forRent: [], totalForSale: 0, totalForRent: 0,
+      error: "ZIP code inv\u00e1lido (debe ser 5 d\u00edgitos)." };
   }
 
   if (!process.env.RAPIDAPI_KEY) {
-    return {
-      forSale: [], forRent: [], totalForSale: 0, totalForRent: 0,
-      error: "RAPIDAPI_KEY no configurada. Agg\u00e9gala en tu .env.local",
-    };
+    return { forSale: [], forRent: [], totalForSale: 0, totalForRent: 0,
+      error: "RAPIDAPI_KEY no configurada en .env.local" };
   }
 
+  // PullAPI zillow-scraper usa /search/by-zip-code con listing_type
   const [saleData, rentData] = await Promise.all([
-    fetchZillow("propertyExtendedSearch", {
-      location:    zip,
-      status_type: "ForSale",
-      home_type:   "Houses,Apartments,Condos,Townhomes,MultiFamily,Manufactured",
-      sort:        "Price_High_Low",
+    fetchZillow("search/by-zip-code", {
+      zip_code:     zip,
+      listing_type: "for_sale",
+      sort:         "price_high_to_low",
     }),
-    fetchZillow("propertyExtendedSearch", {
-      location:    zip,
-      status_type: "ForRent",
-      home_type:   "Houses,Apartments,Condos,Townhomes,MultiFamily,Manufactured",
-      sort:        "Price_High_Low",
+    fetchZillow("search/by-zip-code", {
+      zip_code:     zip,
+      listing_type: "for_rent",
+      sort:         "price_high_to_low",
     }),
   ]);
 
+  console.log("[Zillow sale raw keys]", saleData ? Object.keys(saleData) : "null");
+  console.log("[Zillow rent raw keys]", rentData ? Object.keys(rentData) : "null");
+
   if (!saleData && !rentData) {
-    return {
-      forSale: [], forRent: [], totalForSale: 0, totalForRent: 0,
-      error: "No se pudo conectar con Zillow API. Verifica tu RAPIDAPI_KEY y que est\u00e9s suscrito a \u2018Zillow\u2019 (zillow-com1) en RapidAPI.",
-    };
+    return { forSale: [], forRent: [], totalForSale: 0, totalForRent: 0,
+      error: "No se pudo conectar. Verifica tu RAPIDAPI_KEY y suscripci\u00f3n a Zillow Scraper (PullAPI) en RapidAPI." };
   }
 
-  const saleProps = parseProps(saleData?.props ?? []);
-  const rentProps = parseProps(rentData?.props ?? []);
+  // La respuesta puede venir como { results: [] } o { listings: [] } o { properties: [] } o array directo
+  const extractList = (d: any): any[] =>
+    d?.results ?? d?.listings ?? d?.properties ?? d?.data ?? (Array.isArray(d) ? d : []);
+
+  const saleProps = parseProps(extractList(saleData));
+  const rentProps = parseProps(extractList(rentData));
 
   return {
     forSale:      saleProps,
     forRent:      rentProps,
-    totalForSale: saleData?.totalResultCount ?? saleProps.length,
-    totalForRent: rentData?.totalResultCount ?? rentProps.length,
+    totalForSale: saleData?.total_count ?? saleData?.totalResultCount ?? saleProps.length,
+    totalForRent: rentData?.total_count ?? rentData?.totalResultCount ?? rentProps.length,
   };
 }
