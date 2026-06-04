@@ -230,7 +230,7 @@ export function ZipCodesClient() {
               <Building2 size={15} />
               En Renta
               <span className={`rounded-lg px-2 py-0.5 text-[14px] font-black ${
-                tab === "rent" ? "bg-white/20 " : "bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-400"
+                tab === "rent" ? "bg-white/20  " : "bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-400"
               }`}>{totRent.toLocaleString()}</span>
             </button>
 
