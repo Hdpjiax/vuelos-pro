@@ -31,11 +31,34 @@ function buildAddress(p: any): string {
     p.city ?? "",
     p.state ?? "",
     p.zipcode ?? p.zip ?? "",
-  ].filter(Boolean).join(", ") || "Sin dirección";
+  ].filter(Boolean).join(", ") || "Sin direcci\u00f3n";
 }
 
-function parseProps(raw: any[]): ZillowProperty[] {
-  return (raw ?? []).map((p: any) => ({
+/** Busca recursivamente la primera clave cuyo valor sea un array no vac\u00edo */
+function extractList(d: any): any[] {
+  if (!d) return [];
+  if (Array.isArray(d)) return d;
+
+  // Claves conocidas primero
+  const knownKeys = [
+    "results", "listings", "properties", "data", "homes",
+    "list", "items", "records", "searchResults", "propertyList",
+  ];
+  for (const k of knownKeys) {
+    if (Array.isArray(d[k])) return d[k];
+  }
+
+  // Buscar cualquier clave que sea array
+  for (const k of Object.keys(d)) {
+    if (Array.isArray(d[k]) && d[k].length > 0) return d[k];
+  }
+
+  return [];
+}
+
+function parseProps(raw: any): ZillowProperty[] {
+  const list = extractList(raw);
+  return list.map((p: any) => ({
     zpid:         String(p.zpid ?? p.id ?? Math.random()),
     address:      buildAddress(p),
     price:        p.price ?? p.list_price ?? p.unformattedPrice ?? null,
@@ -62,7 +85,7 @@ async function fetchZillow(params: Record<string, string>): Promise<any> {
     const res = await fetch(url.toString(), {
       method: "GET",
       headers: {
-        "Content-Type":   "application/json",
+        "Content-Type":    "application/json",
         "x-rapidapi-host": RAPID_HOST,
         "x-rapidapi-key":  process.env.RAPIDAPI_KEY ?? "",
       },
@@ -74,7 +97,11 @@ async function fetchZillow(params: Record<string, string>): Promise<any> {
       console.error(`[Zillow] ${res.status} ${res.statusText} \u2192 ${ENDPOINT}`, body.slice(0, 300));
       return null;
     }
-    return res.json();
+
+    const json = await res.json();
+    // LOG completo para ver la estructura real de la respuesta
+    console.log("[Zillow raw response]", JSON.stringify(json).slice(0, 500));
+    return json;
   } catch (e) {
     console.error("[Zillow] fetch error:", e);
     return null;
@@ -92,33 +119,26 @@ export async function searchZipCodeAction(zip: string): Promise<ZillowResult> {
       error: "RAPIDAPI_KEY no configurada en .env.local" };
   }
 
-  const commonParams = { zipcode: zip, page: "1" };
-
   const [saleData, rentData] = await Promise.all([
-    fetchZillow({ ...commonParams, listing_type: "for_sale", sort: "newest" }),
-    fetchZillow({ ...commonParams, listing_type: "for_rent", sort: "newest" }),
+    fetchZillow({ zipcode: zip, listing_type: "for_sale", sort: "newest", page: "1" }),
+    fetchZillow({ zipcode: zip, listing_type: "for_rent", sort: "newest", page: "1" }),
   ]);
-
-  // Log para debugging — muestra qué llaves devuelve la API
-  console.log("[Zillow sale keys]", saleData ? Object.keys(saleData) : "null");
-  console.log("[Zillow rent keys]", rentData ? Object.keys(rentData) : "null");
 
   if (!saleData && !rentData) {
     return { forSale: [], forRent: [], totalForSale: 0, totalForRent: 0,
-      error: "No se pudo conectar. Verifica tu RAPIDAPI_KEY y suscripci\u00f3n a Zillow Scraper (PullAPI) en RapidAPI." };
+      error: "No se pudo conectar. Verifica tu RAPIDAPI_KEY y suscripci\u00f3n." };
   }
 
-  const extractList = (d: any): any[] =>
-    d?.results ?? d?.listings ?? d?.properties ?? d?.data ?? d?.homes ??
-    (Array.isArray(d) ? d : []);
+  const saleProps = parseProps(saleData);
+  const rentProps = parseProps(rentData);
 
-  const saleProps = parseProps(extractList(saleData));
-  const rentProps = parseProps(extractList(rentData));
+  const countFrom = (d: any) =>
+    d?.total_count ?? d?.totalResultCount ?? d?.total ?? d?.count ?? 0;
 
   return {
     forSale:      saleProps,
     forRent:      rentProps,
-    totalForSale: saleData?.total_count ?? saleData?.totalResultCount ?? saleData?.total ?? saleProps.length,
-    totalForRent: rentData?.total_count ?? rentData?.totalResultCount ?? rentData?.total ?? rentProps.length,
+    totalForSale: countFrom(saleData) || saleProps.length,
+    totalForRent: countFrom(rentData) || rentProps.length,
   };
 }
