@@ -12,8 +12,6 @@ export interface ZillowProperty {
   zestimate: number | null;
   propertyType: string | null;
   daysOnZillow: number | null;
-  lotAreaValue?: number | null;
-  lotAreaUnit?: string | null;
 }
 
 type ZillowResult = {
@@ -24,10 +22,17 @@ type ZillowResult = {
   error?: string;
 };
 
+const RAPID_HOST = "zillow-com1.p.rapidapi.com";
+
 function parseProps(raw: any[]): ZillowProperty[] {
   return (raw ?? []).map((p: any) => ({
     zpid:         String(p.zpid ?? p.id ?? ""),
-    address:      p.address ?? p.streetAddress ?? "",
+    address:      [
+      p.streetAddress ?? p.address ?? "",
+      p.city ?? "",
+      p.state ?? "",
+      p.zipcode ?? "",
+    ].filter(Boolean).join(", "),
     price:        p.price ?? p.unformattedPrice ?? null,
     bedrooms:     p.bedrooms ?? p.beds ?? null,
     bathrooms:    p.bathrooms ?? p.baths ?? null,
@@ -39,8 +44,6 @@ function parseProps(raw: any[]): ZillowProperty[] {
     zestimate:    p.zestimate ?? null,
     propertyType: p.propertyType ?? p.homeType ?? null,
     daysOnZillow: p.daysOnZillow ?? null,
-    lotAreaValue: p.lotAreaValue ?? null,
-    lotAreaUnit:  p.lotAreaUnit ?? null,
   }));
 }
 
@@ -48,16 +51,14 @@ async function fetchZillow(
   endpoint: string,
   params: Record<string, string>
 ): Promise<any> {
-  // Intentamos con el host correcto del scraper de PullAPI
-  const host = "zillow-scraper-api.p.rapidapi.com";
-  const url  = new URL(`https://${host}/${endpoint}`);
+  const url = new URL(`https://${RAPID_HOST}/${endpoint}`);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
   try {
     const res = await fetch(url.toString(), {
-      method:  "GET",
+      method: "GET",
       headers: {
-        "x-rapidapi-host": host,
+        "x-rapidapi-host": RAPID_HOST,
         "x-rapidapi-key":  process.env.RAPIDAPI_KEY ?? "",
         "Accept":          "application/json",
       },
@@ -65,7 +66,7 @@ async function fetchZillow(
     });
 
     if (!res.ok) {
-      console.error(`[Zillow] ${res.status} ${res.statusText} → ${url.toString()}`);
+      console.error(`[Zillow] ${res.status} ${res.statusText} \u2192 ${url.toString()}`);
       return null;
     }
     return res.json();
@@ -77,11 +78,14 @@ async function fetchZillow(
 
 export async function searchZipCodeAction(zip: string): Promise<ZillowResult> {
   if (!zip.match(/^\d{5}$/)) {
-    return { forSale: [], forRent: [], totalForSale: 0, totalForRent: 0, error: "ZIP code inválido (debe ser 5 dígitos)." };
+    return { forSale: [], forRent: [], totalForSale: 0, totalForRent: 0, error: "ZIP code inv\u00e1lido (debe ser 5 d\u00edgitos)." };
   }
 
   if (!process.env.RAPIDAPI_KEY) {
-    return { forSale: [], forRent: [], totalForSale: 0, totalForRent: 0, error: "RAPIDAPI_KEY no configurada en variables de entorno." };
+    return {
+      forSale: [], forRent: [], totalForSale: 0, totalForRent: 0,
+      error: "RAPIDAPI_KEY no configurada. Agg\u00e9gala en tu .env.local",
+    };
   }
 
   const [saleData, rentData] = await Promise.all([
@@ -99,19 +103,15 @@ export async function searchZipCodeAction(zip: string): Promise<ZillowResult> {
     }),
   ]);
 
-  const saleProps = parseProps(
-    saleData?.props ?? saleData?.results ?? saleData?.listings ?? saleData?.data ?? []
-  );
-  const rentProps = parseProps(
-    rentData?.props ?? rentData?.results ?? rentData?.listings ?? rentData?.data ?? []
-  );
-
   if (!saleData && !rentData) {
     return {
       forSale: [], forRent: [], totalForSale: 0, totalForRent: 0,
-      error: "No se pudo conectar con Zillow API. Verifica tu RAPIDAPI_KEY y que estés suscrito a 'Zillow Scraper' en RapidAPI.",
+      error: "No se pudo conectar con Zillow API. Verifica tu RAPIDAPI_KEY y que est\u00e9s suscrito a \u2018Zillow\u2019 (zillow-com1) en RapidAPI.",
     };
   }
+
+  const saleProps = parseProps(saleData?.props ?? []);
+  const rentProps = parseProps(rentData?.props ?? []);
 
   return {
     forSale:      saleProps,
