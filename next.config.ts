@@ -20,7 +20,7 @@ const securityHeaders = [
         "https://lookup.binlist.net",
         "https://www.google-analytics.com",
       ].join(" "),
-      "img-src 'self' blob: data: https://*.supabase.co",
+      "img-src 'self' blob: data: https://*.supabase.co https://*.zillowstatic.com",
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self'",
       "frame-ancestors 'none'",
@@ -39,6 +39,14 @@ const nextConfig: NextConfig = {
       ],
       bodySizeLimit: "10mb",
     },
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.zillowstatic.com",
+      },
+    ],
   },
   async headers() {
     return [
