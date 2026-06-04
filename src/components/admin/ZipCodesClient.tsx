@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { searchZipCodeAction, type ZillowProperty } from "@/app/admin/tools/zip-codes/actions";
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// ── helpers ────────────────────────────────────────────────────────────────
 function fmtPrice(n: number | null) {
   if (!n) return "N/A";
   return "$" + n.toLocaleString("en-US");
@@ -18,7 +18,7 @@ function fmtArea(n: number | null) {
   return n.toLocaleString("en-US") + " ft²";
 }
 
-// ── PropertyCard ──────────────────────────────────────────────────────────────
+// ── PropertyCard ────────────────────────────────────────────────────────────
 function PropertyCard({ p, mode }: { p: ZillowProperty; mode: "sale" | "rent" }) {
   const accent = mode === "sale"
     ? { grad: "from-sky-500 to-violet-500", badge: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300", dot: "bg-sky-500" }
@@ -40,12 +40,10 @@ function PropertyCard({ p, mode }: { p: ZillowProperty; mode: "sale" | "rent" })
             <Home size={40} className="text-slate-300 dark:text-white/20" />
           </div>
         )}
-        {/* Badge tipo */}
         <div className={`absolute left-3 top-3 flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-[11px] font-black uppercase tracking-wider backdrop-blur-sm ${accent.badge}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${accent.dot}`} />
           {mode === "sale" ? "En Venta" : "En Renta"}
         </div>
-        {/* Precio encima */}
         <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t ${mode === "sale" ? "from-sky-900/80" : "from-emerald-900/80"} to-transparent px-4 py-3`}>
           <p className="text-xl font-black text-white drop-shadow">
             {fmtPrice(p.price)}
@@ -56,13 +54,11 @@ function PropertyCard({ p, mode }: { p: ZillowProperty; mode: "sale" | "rent" })
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-3 p-4">
-        {/* Dirección */}
         <div className="flex items-start gap-1.5">
           <MapPin size={13} className="mt-0.5 shrink-0 text-slate-400" />
           <p className="text-sm font-bold leading-snug text-slate-800 dark:text-slate-100">{p.address || "Sin dirección"}</p>
         </div>
 
-        {/* Stats */}
         <div className="flex flex-wrap gap-2">
           {p.bedrooms != null && (
             <span className="flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-white/10 dark:text-slate-300">
@@ -86,7 +82,6 @@ function PropertyCard({ p, mode }: { p: ZillowProperty; mode: "sale" | "rent" })
           )}
         </div>
 
-        {/* Zestimate */}
         {p.zestimate && (
           <div className="flex items-center gap-1.5 rounded-xl border border-violet-100 bg-violet-50 px-3 py-1.5 dark:border-violet-400/20 dark:bg-violet-900/20">
             <TrendingUp size={12} className="text-violet-500" />
@@ -94,14 +89,12 @@ function PropertyCard({ p, mode }: { p: ZillowProperty; mode: "sale" | "rent" })
           </div>
         )}
 
-        {/* Tipo */}
         {p.propertyType && (
           <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             {p.propertyType.replace(/_/g, " ")}
           </p>
         )}
 
-        {/* Link */}
         <a
           href={p.detailUrl}
           target="_blank"
@@ -115,7 +108,7 @@ function PropertyCard({ p, mode }: { p: ZillowProperty; mode: "sale" | "rent" })
   );
 }
 
-// ── Main client ───────────────────────────────────────────────────────────────
+// ── Main client ──────────────────────────────────────────────────────────────
 export function ZipCodesClient() {
   const [zip, setZip]           = useState("");
   const [tab, setTab]           = useState<"sale" | "rent">("sale");
@@ -163,10 +156,11 @@ export function ZipCodesClient() {
       {/* ── Búsqueda ── */}
       <div className="flex flex-col gap-3 rounded-3xl border-2 border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5 sm:flex-row sm:items-end">
         <div className="flex-1">
-          <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          {/* LABEL: negro duro en light, blanco en dark */}
+          <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
             Código Postal (ZIP)
           </label>
-          <div className="flex items-center gap-2 rounded-2xl border-2 border-slate-300 bg-slate-50 px-4 py-2.5 focus-within:border-sky-400 dark:border-white/15 dark:bg-white/5">
+          <div className="flex items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-4 py-2.5 focus-within:border-sky-400 dark:border-white/15 dark:bg-slate-800">
             <MapPin size={15} className="shrink-0 text-slate-400" />
             <input
               ref={inputRef}
@@ -176,7 +170,7 @@ export function ZipCodesClient() {
               placeholder="Ej. 90210, 10001, 33101…"
               inputMode="numeric"
               maxLength={5}
-              className="flex-1 bg-transparent text-lg font-black tracking-widest text-slate-900 outline-none placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal dark:text-white"
+              className="flex-1 bg-transparent text-lg font-black tracking-widest text-slate-900 outline-none placeholder:text-base placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
             />
             {zip.length > 0 && (
               <span className={`text-xs font-bold ${zip.length === 5 ? "text-sky-500" : "text-slate-400"}`}>

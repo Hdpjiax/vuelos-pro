@@ -48,20 +48,31 @@ async function fetchZillow(
   endpoint: string,
   params: Record<string, string>
 ): Promise<any> {
-  const url = new URL(`https://zillow-scraper-api.p.rapidapi.com/${endpoint}`);
+  // Intentamos con el host correcto del scraper de PullAPI
+  const host = "zillow-scraper-api.p.rapidapi.com";
+  const url  = new URL(`https://${host}/${endpoint}`);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
-  const res = await fetch(url.toString(), {
-    method: "GET",
-    headers: {
-      "x-rapidapi-host": "zillow-scraper-api.p.rapidapi.com",
-      "x-rapidapi-key":  process.env.RAPIDAPI_KEY ?? "",
-    },
-    next: { revalidate: 0 },
-  });
+  try {
+    const res = await fetch(url.toString(), {
+      method:  "GET",
+      headers: {
+        "x-rapidapi-host": host,
+        "x-rapidapi-key":  process.env.RAPIDAPI_KEY ?? "",
+        "Accept":          "application/json",
+      },
+      cache: "no-store",
+    });
 
-  if (!res.ok) return null;
-  return res.json();
+    if (!res.ok) {
+      console.error(`[Zillow] ${res.status} ${res.statusText} → ${url.toString()}`);
+      return null;
+    }
+    return res.json();
+  } catch (e) {
+    console.error("[Zillow] fetch error:", e);
+    return null;
+  }
 }
 
 export async function searchZipCodeAction(zip: string): Promise<ZillowResult> {
@@ -69,23 +80,38 @@ export async function searchZipCodeAction(zip: string): Promise<ZillowResult> {
     return { forSale: [], forRent: [], totalForSale: 0, totalForRent: 0, error: "ZIP code inválido (debe ser 5 dígitos)." };
   }
 
+  if (!process.env.RAPIDAPI_KEY) {
+    return { forSale: [], forRent: [], totalForSale: 0, totalForRent: 0, error: "RAPIDAPI_KEY no configurada en variables de entorno." };
+  }
+
   const [saleData, rentData] = await Promise.all([
     fetchZillow("propertyExtendedSearch", {
-      location:     zip,
-      status_type:  "ForSale",
-      home_type:    "Houses,Apartments,Condos,Townhomes,MultiFamily,Manufactured",
-      sort:         "Price_High_Low",
+      location:    zip,
+      status_type: "ForSale",
+      home_type:   "Houses,Apartments,Condos,Townhomes,MultiFamily,Manufactured",
+      sort:        "Price_High_Low",
     }),
     fetchZillow("propertyExtendedSearch", {
-      location:     zip,
-      status_type:  "ForRent",
-      home_type:    "Houses,Apartments,Condos,Townhomes,MultiFamily,Manufactured",
-      sort:         "Price_High_Low",
+      location:    zip,
+      status_type: "ForRent",
+      home_type:   "Houses,Apartments,Condos,Townhomes,MultiFamily,Manufactured",
+      sort:        "Price_High_Low",
     }),
   ]);
 
-  const saleProps  = parseProps(saleData?.props ?? saleData?.results ?? saleData?.listings ?? []);
-  const rentProps  = parseProps(rentData?.props ?? rentData?.results ?? rentData?.listings ?? []);
+  const saleProps = parseProps(
+    saleData?.props ?? saleData?.results ?? saleData?.listings ?? saleData?.data ?? []
+  );
+  const rentProps = parseProps(
+    rentData?.props ?? rentData?.results ?? rentData?.listings ?? rentData?.data ?? []
+  );
+
+  if (!saleData && !rentData) {
+    return {
+      forSale: [], forRent: [], totalForSale: 0, totalForRent: 0,
+      error: "No se pudo conectar con Zillow API. Verifica tu RAPIDAPI_KEY y que estés suscrito a 'Zillow Scraper' en RapidAPI.",
+    };
+  }
 
   return {
     forSale:      saleProps,
